@@ -20,6 +20,8 @@ const tenantSchema = new mongoose.Schema(
     assets: {
       logoUrl: { type: String },
     },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );

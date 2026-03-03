@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
+import { UnauthorizedError, ForbiddenError } from "./errorHandler.js";
 
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
+    return next(new UnauthorizedError("No token provided"));
   }
 
   const token = authHeader.split(" ")[1];
@@ -13,6 +14,6 @@ export const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    res.status(403).json({ message: "Invalid token" });
+    return next(new ForbiddenError("Invalid token"));
   }
 };

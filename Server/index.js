@@ -3,8 +3,12 @@ import express from "express";
 import cors from "cors";
 import userRoutes from "./src/routes/userRoutes.js";
 import resourceRoutes from "./src/routes/resourceroutes.js";
+import propertyRoutes from "./src/routes/propertyRoutes.js";
+import renterRoutes from "./src/routes/renterRoutes.js";
+import invoiceRoutes from "./src/routes/invoiceRoutes.js";
 import { connectDB } from "./src/config/db.js";
 import { requestLogger } from "./src/middlewares/requestLogger.js";
+import { errorHandler } from "./src/middlewares/errorHandler.js";
 
 const app = express();
 const allowedOrigins = (process.env.CLIENT_ORIGINS || "")
@@ -38,9 +42,20 @@ app.get("/", (req, res) => {
 });
 
 // Connect user and resource routes
+
 app.use("/api/user", userRoutes);
 app.use("/api/tenants/:tenantId/posts", resourceRoutes);
 app.use("/api/posts", resourceRoutes);
+app.use("/api/tenants/:tenantId/properties", propertyRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/tenants/:tenantId/renters", renterRoutes);
+app.use("/api/renters", renterRoutes);
+
+app.use("/api/tenants/:tenantId/invoices", invoiceRoutes);
+app.use("/api/invoices", invoiceRoutes);
+
+// Centralized error handler (must be last)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

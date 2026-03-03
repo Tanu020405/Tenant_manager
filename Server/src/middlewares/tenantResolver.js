@@ -1,3 +1,5 @@
+import { ValidationError, ForbiddenError } from "./errorHandler.js";
+
 export const tenantResolver = (req, res, next) => {
   try {
     const pathTenant = req.params?.tenantId || req.params?.tenant;
@@ -25,16 +27,16 @@ export const tenantResolver = (req, res, next) => {
       pathTenant || headerTenant || queryTenant || subdomainTenant || tokenTenant;
 
     if (!resolvedTenant) {
-      return res.status(400).json({ message: "Tenant context is required" });
+      return next(new ValidationError("Tenant context is required"));
     }
 
     if (tokenTenant && resolvedTenant !== tokenTenant) {
-      return res.status(403).json({ message: "Tenant mismatch for authenticated user" });
+      return next(new ForbiddenError("Tenant mismatch for authenticated user"));
     }
 
     req.tenantId = resolvedTenant;
     next();
   } catch (err) {
-    res.status(500).json({ message: "Tenant resolution failed", error: err.message });
+    next(err);
   }
 };

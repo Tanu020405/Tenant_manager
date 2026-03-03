@@ -5,6 +5,8 @@ const postSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String },
     tenantId: { type: String, required: true, index: true },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );
