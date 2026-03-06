@@ -55,8 +55,9 @@ function Register() {
   };
 
   return (
-    <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.1fr,1fr] lg:p-12">
-      <section className="space-y-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-lg">
+        <section className="space-y-6 mb-6 hidden sm:block">
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
           Multi-tenant basics
         </span>
@@ -97,7 +98,7 @@ function Register() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex w-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-inner"
+        className="flex w-full flex-col gap-4"
       >
         <div>
           <h2 className="text-xl font-semibold text-[color:var(--color-primary)]">Register</h2>
@@ -184,6 +185,7 @@ function Register() {
           {loading ? "Creating workspace..." : "Create workspace"}
         </button>
       </form>
+      </div>
     </div>
   );
 }
