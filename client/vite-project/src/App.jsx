@@ -1,101 +1,68 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import Register from "./register/Register";
-import Login from "./register/Login";
-import Dashboard from "./register/Dashboard";
-import { applyTheme, clearStoredTheme, getStoredTheme } from "./utils/theme.js";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { applyTheme, getStoredTheme } from "./utils/theme.js";
+import { useAuth } from "./hooks/useAuth.js";
 
-const NavigationBar = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+// Layout
+import { AppShell } from "./components/layout/AppShell.jsx";
 
-  useEffect(() => {
-    const evaluateAuthState = () => {
-      setIsAuthenticated(Boolean(localStorage.getItem("token")));
-    };
+// Auth pages (keep existing)
+import Register from "./register/Register.jsx";
+import Login from "./register/Login.jsx";
 
-    evaluateAuthState();
-    window.addEventListener("storage", evaluateAuthState);
-    return () => window.removeEventListener("storage", evaluateAuthState);
-  }, []);
+// Tenant pages
+import PropertiesPage from "./pages/tenant/PropertiesPage.jsx";
+import RentersPage from "./pages/tenant/RentersPage.jsx";
+import InvoicesPage from "./pages/tenant/InvoicesPage.jsx";
+import PaymentsPage from "./pages/tenant/PaymentsPage.jsx";
+import AnalyticsPage from "./pages/tenant/AnalyticsPage.jsx";
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    clearStoredTheme();
-    window.location.href = "/login";
-  };
+// Renter pages
+import MyInvoicesPage from "./pages/renter/MyInvoicesPage.jsx";
+import MyPaymentsPage from "./pages/renter/MyPaymentsPage.jsx";
 
-  return (
-    <header className="border-b border-slate-200/70 bg-[color:var(--color-surface)]">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <span />
-        <nav className="flex items-center gap-3 text-sm font-medium text-[color:var(--color-muted)]">
-          {isAuthenticated ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-[color:var(--color-text)]"
-              >
-                Dashboard
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold text-[color:var(--color-text)] shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-[color:var(--color-text)]"
-              >
-                Login
-              </Link>
-              <Link
-                to="/"
-                className="rounded-full  text-white bg-[--color-accent] px-4 py-2 font-semibold shadow-sm transition hover:brightness-105"
-              >
-                Create account
-              </Link>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
+/** Redirects authenticated users to the right home based on their role */
+const RoleHome = () => {
+  const { isAuthenticated, role } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (role === "renter") return <Navigate to="/my-invoices" replace />;
+  return <Navigate to="/properties" replace />;  // tenant / superAdmin
 };
 
 function App() {
   useEffect(() => {
     const stored = getStoredTheme();
-    if (stored) {
-      applyTheme(stored);
-    } else {
-      applyTheme({});
-    }
+    applyTheme(stored ?? {});
   }, []);
 
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen flex-col bg-[color:var(--color-background)] text-[color:var(--color-text)]">
-        <NavigationBar />
-        <main className="flex flex-1 justify-center px-4 py-10">
-          <div className="w-full max-w-5xl">
-            <Routes>
-              <Route path="/" element={<Register />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Routes>
-          </div>
-        </main>
-        <footer className="border-t border-slate-200/70 bg-[color:var(--color-surface)]">
-          <div className="mx-auto max-w-5xl px-4 py-4 text-center text-xs text-[color:var(--color-muted)]">
-            Built for the Nimbus challenge - Multi-tenant demo workspace
-          </div>
-        </footer>
-      </div>
+      <Routes>
+        {/* Public */}
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+
+        {/* Role-based home redirect */}
+        <Route path="/" element={<RoleHome />} />
+
+        {/* Tenant — authenticated layout */}
+        <Route element={<AppShell requiredRole="tenant" />}>
+          <Route path="/properties" element={<PropertiesPage />} />
+          <Route path="/renters" element={<RentersPage />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+        </Route>
+
+        {/* Renter — authenticated layout */}
+        <Route element={<AppShell requiredRole="renter" />}>
+          <Route path="/my-invoices" element={<MyInvoicesPage />} />
+          <Route path="/my-payments" element={<MyPaymentsPage />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

@@ -12,9 +12,9 @@ router.post("/login", loginUser);
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    res.json({ user });
+    res.json({ success: true, data: user });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -22,11 +22,11 @@ router.get("/tenant/profile", verifyToken, async (req, res) => {
   try {
     const tenant = await Tenant.findOne({ tenantId: req.user.tenantId });
     if (!tenant) {
-      return res.status(404).json({ message: "Tenant not found" });
+      return res.status(404).json({ success: false, message: "Tenant not found" });
     }
-    res.json({ tenant });
+    res.json({ success: true, data: tenant });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

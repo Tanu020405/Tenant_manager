@@ -1,17 +1,21 @@
 import { ForbiddenError } from "./errorHandler.js";
 
-// Middleware to require a specific user role (admin, tenant)
-export const requireRole = (role) => (req, res, next) => {
-  if (!req.user || req.user.role !== role) {
-    return next(new ForbiddenError(`Access denied: ${role} role required`));
-  }
-  next();
+// Middleware to require one or more roles — pass roles as individual args or an array
+// Usage: requireRole("tenant")  OR  requireRole("tenant", "renter")
+export const requireRole = (...roles) => {
+  // Support both requireRole("a", "b") and requireRole(["a", "b"])
+  const allowed = roles.flat();
+  return (req, res, next) => {
+    if (!req.user || !allowed.includes(req.user.role)) {
+      return next(
+        new ForbiddenError(
+          `Access denied: one of [${allowed.join(", ")}] role required`
+        )
+      );
+    }
+    next();
+  };
 };
 
-// Middleware to allow multiple roles
-export const requireAnyRole = (roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
-    return next(new ForbiddenError(`Access denied: one of [${roles.join(", ")}] required`));
-  }
-  next();
-};
+// Alias kept for backward-compatibility — requireAnyRole(["a","b"]) still works
+export const requireAnyRole = (roles) => requireRole(...roles);

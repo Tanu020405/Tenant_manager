@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true },
     password: { type: String, required: true },
     tenantId: { type: String, required: true, index: true },
-    role: { type: String, enum: ["admin", "tenant"], default: "tenant" },
+    role: { type: String, enum: ["superAdmin", "tenant", "renter"], default: "tenant" },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
   },

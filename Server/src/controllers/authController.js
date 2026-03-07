@@ -94,8 +94,9 @@ export const registerUser = async (req, res, next) => {
       throw new ConflictError("User already exists for this tenant");
     }
 
-    // Only allow 'admin' role if explicitly provided, default to 'tenant'
-    const userRole = role === "admin" ? "admin" : "tenant";
+    // Allow explicit role assignment: superAdmin, tenant, or renter. Default to "tenant".
+    const validRoles = ["superAdmin", "tenant", "renter"];
+    const userRole = validRoles.includes(role) ? role : "tenant";
     const newUser = await User.create({ name, email, password, tenantId: tenant.tenantId, role: userRole });
     const token = generateToken(newUser);
 
