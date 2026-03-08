@@ -9,7 +9,7 @@ import { Modal } from "../../components/ui/Modal.jsx";
 import { PageSpinner } from "../../components/ui/Spinner.jsx";
 import { EmptyState } from "../../components/ui/EmptyState.jsx";
 
-const emptyForm = { name: "", email: "", phone: "", propertyId: "" };
+const emptyForm = { name: "", email: "", phone: "", propertyId: "", dateType: "today", customDate: "" };
 
 const RentersPage = () => {
     const { tenantId } = useAuth();
@@ -41,7 +41,16 @@ const RentersPage = () => {
     const openAdd = () => { setEditTarget(null); setForm(emptyForm); setModalOpen(true); };
     const openEdit = (r) => {
         setEditTarget(r);
-        setForm({ name: r.name, email: r.email, phone: r.phone || "", propertyId: r.property?._id || "" });
+        const hasDate = r.leaseStartDate;
+        const formattedDate = hasDate ? new Date(r.leaseStartDate).toISOString().split('T')[0] : "";
+        setForm({
+            name: r.name,
+            email: r.email,
+            phone: r.phone || "",
+            propertyId: r.property?._id || "",
+            dateType: hasDate ? "custom" : "today",
+            customDate: formattedDate
+        });
         setModalOpen(true);
     };
 
@@ -49,7 +58,16 @@ const RentersPage = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            const payload = { name: form.name, email: form.email, phone: form.phone, property: form.propertyId || undefined };
+            let leaseStartDate = form.dateType === "custom" && form.customDate ? new Date(form.customDate) : new Date();
+
+            const payload = {
+                name: form.name,
+                email: form.email,
+                phone: form.phone,
+                property: form.propertyId || null,
+                leaseStartDate
+            };
+            console.log("Saving renter payload:", payload);
             if (editTarget) await api.put(renterRoute(tenantId, editTarget._id), payload);
             else await api.post(rentersRoute(tenantId), payload);
             setModalOpen(false);
@@ -96,7 +114,14 @@ const RentersPage = () => {
                                         <td className="px-4 py-3 font-medium text-[color:var(--color-text)]">{r.name}</td>
                                         <td className="px-4 py-3 text-[color:var(--color-muted)]">{r.email}</td>
                                         <td className="px-4 py-3 text-[color:var(--color-muted)]">{r.phone || "—"}</td>
-                                        <td className="px-4 py-3 text-[color:var(--color-muted)]">{r.property?.name || "Unassigned"}</td>
+                                        <td className="px-4 py-3 text-[color:var(--color-muted)]">
+                                            {r.property?.name || "Unassigned"}
+                                            {r.property && r.leaseStartDate && (
+                                                <div className="mt-0.5 text-xs text-slate-400">
+                                                    Starts: {new Date(r.leaseStartDate).toLocaleDateString()}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3"><Badge label={r.active ? "active" : "inactive"} /></td>
                                         <td className="px-4 py-3">
                                             <div className="flex gap-2">
@@ -114,6 +139,11 @@ const RentersPage = () => {
 
             <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Renter" : "Add Renter"}>
                 <form onSubmit={handleSave} className="space-y-4">
+                    {!editTarget && (
+                        <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-700">
+                            <strong>Note:</strong> Adding a renter will automatically create an account for them. They can log in at <code>/login</code> with their email and the default password <code>password123</code>.
+                        </div>
+                    )}
                     {[
                         { label: "Full Name", name: "name", type: "text", placeholder: "Rahul Sharma", required: true },
                         { label: "Email", name: "email", type: "email", placeholder: "rahul@example.com", required: true },
@@ -134,6 +164,27 @@ const RentersPage = () => {
                             {properties.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
                         </select>
                     </label>
+
+                    {form.propertyId && (
+                        <div className="space-y-2 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+                            <span className="block text-sm font-medium text-[color:var(--color-text)] mb-2">Rent Calculation Starts</span>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 text-sm text-[color:var(--color-muted)]">
+                                    <input type="radio" name="dateType" value="today" checked={form.dateType === "today"} onChange={() => setForm(f => ({ ...f, dateType: "today" }))} className="text-[color:var(--color-accent)] focus:ring-[color:var(--color-accent)]" />
+                                    From Today
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-[color:var(--color-muted)]">
+                                    <input type="radio" name="dateType" value="custom" checked={form.dateType === "custom"} onChange={() => setForm(f => ({ ...f, dateType: "custom" }))} className="text-[color:var(--color-accent)] focus:ring-[color:var(--color-accent)]" />
+                                    Specific Date
+                                </label>
+                            </div>
+                            {form.dateType === "custom" && (
+                                <input type="date" value={form.customDate} onChange={e => setForm(f => ({ ...f, customDate: e.target.value }))}
+                                    className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-[color:var(--color-accent)] focus:outline-none" required />
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex gap-3 pt-2">
                         <Button type="button" variant="ghost" className="flex-1" onClick={() => setModalOpen(false)}>Cancel</Button>
                         <Button type="submit" className="flex-1" loading={saving}>Save</Button>

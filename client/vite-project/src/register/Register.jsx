@@ -1,20 +1,17 @@
 import { useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { persistTheme } from "../utils/theme.js";
 import { authRoutes } from "../utils/api.js";
 
-const tenantOptions = [
-  { id: "t1",  },
-  { id: "t2", },
-  { id: "t3", },
-];
+// No pre-filled tenants needed
 
 function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    tenantId: tenantOptions[0].id,
+    tenantId: "",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: null, text: "" });
@@ -29,25 +26,27 @@ function Register() {
     setMessage({ type: null, text: "" });
 
     try {
-      const { data } = await axios.post(authRoutes.register, formData);
-      if (data?.tenant?.theme) {
-        persistTheme(data.tenant.theme);
+      const response = await axios.post(authRoutes.register, formData);
+      const { tenant } = response.data.data;
+
+      if (tenant?.theme) {
+        persistTheme(tenant.theme);
       }
       setMessage({
         type: "success",
-        text: `Workspace ready for ${data?.tenant?.name || formData.tenantId}. You can log in now.`,
+        text: `Workspace ready for ${tenant?.name || formData.tenantId}. You can log in now.`,
       });
       setFormData({
         name: "",
         email: "",
         password: "",
-        tenantId: tenantOptions[0].id,
+        tenantId: "",
       });
     } catch (err) {
       console.error(err);
       setMessage({
         type: "error",
-        text: err.response?.data?.message || "Registration failed. Try again.",
+        text: err.response?.data?.error?.message || err.response?.data?.message || "Registration failed. Try again.",
       });
     } finally {
       setLoading(false);
@@ -55,68 +54,65 @@ function Register() {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-lg">
-        <section className="space-y-6 mb-6 hidden sm:block">
+    <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.05fr,1fr] lg:p-12">
+      <section className="space-y-6">
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
-          Multi-tenant basics
+          Rental SaaS Platform
         </span>
         <h1 className="text-3xl font-semibold text-[color:var(--color-primary)] sm:text-4xl">
-          Create a shared app with calm, tenant-first defaults.
+          Automate your property management today.
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-          Each tenant receives isolated data, themed colors, and scoped access. Pick one of the
-          starter tenants or create a new identifier during development.
+          Join landlords who use our platform to handle rent collection, track properties, and monitor financial health with ease. Provide a unique workspace ID below to get started.
         </p>
         <dl className="grid gap-4 text-sm text-[color:var(--color-text)] sm:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Isolation
+            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
+              <span className="text-lg">🏢</span> Properties
             </dt>
-            <dd className="mt-1 font-medium">Tenant locked queries & JWT guard</dd>
+            <dd className="mt-1 font-medium">Centralize buildings and renters</dd>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Theming
+            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
+              <span className="text-lg">🧾</span> Invoicing
             </dt>
-            <dd className="mt-1 font-medium">CSS variables switch per login</dd>
+            <dd className="mt-1 font-medium">1-click automated rent billing</dd>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Tooling
+            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
+              <span className="text-lg">💳</span> Payments
             </dt>
-            <dd className="mt-1 font-medium">Express, MongoDB, and Vite</dd>
+            <dd className="mt-1 font-medium">Secure online rent collection</dd>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Scope
+            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
+              <span className="text-lg">📊</span> Analytics
             </dt>
-            <dd className="mt-1 font-medium">Posts per tenant for quick demos</dd>
+            <dd className="mt-1 font-medium">Track revenue and overdue dues</dd>
           </div>
         </dl>
       </section>
 
       <form
         onSubmit={handleSubmit}
-        className="flex w-full flex-col gap-4"
+        className="flex w-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-inner"
       >
         <div>
           <h2 className="text-xl font-semibold text-[color:var(--color-primary)]">Register</h2>
           <p className="text-sm text-[color:var(--color-muted)]">
             Already have an account?{" "}
-            <a href="/login" className="font-medium text-[color:var(--color-accent)]">
+            <Link to="/login" className="font-medium text-[color:var(--color-accent)]">
               Log in
-            </a>
+            </Link>
           </p>
         </div>
 
         {message.text && (
           <p
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              message.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-rose-200 bg-rose-50 text-rose-700"
-            }`}
+            className={`rounded-xl border px-3 py-2 text-sm ${message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+              }`}
           >
             {message.text}
           </p>
@@ -163,18 +159,15 @@ function Register() {
 
         <label className="space-y-1 text-sm">
           <span className="font-medium text-[color:var(--color-text)]">Tenant workspace</span>
-          <select
+          <input
+            type="text"
             name="tenantId"
+            placeholder="e.g. acme-corp-123"
             value={formData.tenantId}
             onChange={handleChange}
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-          >
-            {tenantOptions.map((tenant) => (
-              <option key={tenant.id} value={tenant.id}>
-                {tenant.label} ({tenant.id})
-              </option>
-            ))}
-          </select>
+            required
+          />
         </label>
 
         <button
@@ -185,7 +178,6 @@ function Register() {
           {loading ? "Creating workspace..." : "Create workspace"}
         </button>
       </form>
-      </div>
     </div>
   );
 }

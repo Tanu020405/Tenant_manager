@@ -1,19 +1,16 @@
 import { useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import { persistTheme } from "../utils/theme.js";
 import { authRoutes } from "../utils/api.js";
 
-const tenantOptions = [
-  { id: "t1", },
-  { id: "t2",  },
-  { id: "t3", },
-];
+// No pre-filled tenants needed
 
 function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    tenantId: tenantOptions[0].id,
+    tenantId: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,15 +29,16 @@ function Login() {
     setError(null);
 
     try {
-      const { data } = await axios.post(authRoutes.login, formData);
+      const response = await axios.post(authRoutes.login, formData);
+      const { user, tenant, token } = response.data.data;
 
-      if (data.token) localStorage.setItem("token", data.token);
-      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-      if (data.tenant?.theme) persistTheme(data.tenant.theme);
+      if (token) localStorage.setItem("token", token);
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+      if (tenant?.theme) persistTheme(tenant.theme);
 
       window.location.href = "/dashboard";
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Check your credentials.");
+      setError(err.response?.data?.error?.message || err.response?.data?.message || "Login failed. Check your credentials.");
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -57,8 +55,7 @@ function Login() {
           Hop into your workspace and pick up where you left off.
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-          Tenant-aware JWTs ensure you only ever see your own data. Use the sample tenants while
-          prototyping or create a new one from the register page.
+          Tenant-aware JWTs ensure you only ever see your own data. Enter your workspace ID to sign in.
         </p>
         <ul className="grid gap-3 text-sm text-[color:var(--color-text)] sm:grid-cols-2">
           <li className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
@@ -84,9 +81,9 @@ function Login() {
           <h2 className="text-xl font-semibold text-[color:var(--color-primary)]">Log in</h2>
           <p className="text-sm text-[color:var(--color-muted)]">
             Need an account?{" "}
-            <a href="/" className="font-medium text-[color:var(--color-accent)]">
+            <Link to="/register" className="font-medium text-[color:var(--color-accent)]">
               Create one
-            </a>
+            </Link>
           </p>
         </div>
 
@@ -124,18 +121,15 @@ function Login() {
 
         <label className="space-y-1 text-sm">
           <span className="font-medium text-[color:var(--color-text)]">Tenant workspace</span>
-          <select
+          <input
+            type="text"
             name="tenantId"
             value={formData.tenantId}
             onChange={handleChange}
+            placeholder="e.g. workspace-123"
+            required
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-          >
-            {tenantOptions.map((tenant) => (
-              <option key={tenant.id} value={tenant.id}>
-                {tenant.label} ({tenant.id})
-              </option>
-            ))}
-          </select>
+          />
         </label>
 
         <button

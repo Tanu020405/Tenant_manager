@@ -66,9 +66,14 @@ export const getInvoices = async (req, res, next) => {
 export const getMyInvoices = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, sort = "createdAt", order = "desc", status, period } = req.query;
+    const renterDoc = await Renter.findOne({ user: req.user.id, tenantId: req.tenantId, isDeleted: false });
+    if (!renterDoc) {
+      return res.json({ success: true, data: [], total: 0 });
+    }
+
     const filter = {
       tenantId: req.tenantId,
-      renter: req.user.id,
+      renter: renterDoc._id,
       isDeleted: false,
     };
     if (status) filter.status = status;

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import Invoice from "../models/invoiceModel.js";
 import Payment from "../models/paymentModel.js";
+import Renter from "../models/renterModel.js";
 import {
     NotFoundError,
     ValidationError,
@@ -30,11 +31,16 @@ export const createOrder = async (req, res, next) => {
         const { invoiceId } = req.body;
         if (!invoiceId) throw new ValidationError("invoiceId is required");
 
+        const renterDoc = await Renter.findOne({ user: req.user.id, tenantId: req.tenantId, isDeleted: false });
+        if (!renterDoc) {
+            throw new ForbiddenError("Only registered renters can create payment orders");
+        }
+
         // Only the renter assigned to this invoice can pay it
         const invoice = await Invoice.findOne({
             _id: invoiceId,
             tenantId: req.tenantId,
-            renter: req.user.id,
+            renter: renterDoc._id,
             status: "pending",
             isDeleted: false,
         });
@@ -103,18 +109,37 @@ export const verifyPayment = async (req, res, next) => {
             throw new ValidationError("Invalid payment signature");
         }
 
+        const renterDoc = await Renter.findOne({ user: req.user.id, tenantId: req.tenantId, isDeleted: false });
+        if (!renterDoc) {
+            throw new ForbiddenError("Only registered renters can verify payments");
+        }
+
         // Confirm invoice belongs to this renter and matches the stored orderId
         const invoice = await Invoice.findOne({
             _id: invoiceId,
             tenantId: req.tenantId,
-            renter: req.user.id,
+            renter: renterDoc._id,
             razorpayOrderId: razorpay_order_id,
-            status: "pending",
-            isDeleted: false,
         });
 
+        // We check status explicitly to give better error messages
         if (!invoice) {
-            throw new NotFoundError("Invoice not found or already processed");
+            throw new NotFoundError("Invoice not found or access denied");
+        }
+        if (invoice.isDeleted) {
+            throw new NotFoundError("Invoice was deleted");
+        }
+
+        // Race Condition Handling: Webhooks may mark it before frontend verified
+        if (invoice.status === "paid") {
+            return res.json({
+                success: true,
+                message: "Payment verified and invoice marked as paid (webhook fallback)",
+            });
+        }
+
+        if (invoice.status !== "pending") {
+            throw new ConflictError("Invoice is in an invalid state");
         }
 
         // Mark invoice as paid
@@ -126,7 +151,7 @@ export const verifyPayment = async (req, res, next) => {
         const payment = await Payment.create({
             tenantId: req.tenantId,
             invoiceId: invoice._id,
-            renterId: req.user.id,
+            renterId: renterDoc._id,
             amount: invoice.amount,
             transactionId: razorpay_payment_id,
             orderId: razorpay_order_id,
@@ -153,7 +178,11 @@ export const getPaymentHistory = async (req, res, next) => {
         const filter = { tenantId: req.tenantId, isDeleted: false };
 
         if (req.user.role === "renter") {
-            filter.renterId = req.user.id;
+            const renterDoc = await Renter.findOne({ user: req.user.id, tenantId: req.tenantId, isDeleted: false });
+            if (!renterDoc) {
+                return res.json({ success: true, data: [], total: 0 });
+            }
+            filter.renterId = renterDoc._id;
         }
 
         const payments = await Payment.find(filter)

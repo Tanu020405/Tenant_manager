@@ -1,0 +1,4 @@
+
+[VerifyPayment] Received: {"razorpay_order_id":"order_SOfwgnoeEY305W","razorpay_payment_id":"pay_SOfx8eVNW63Lb3","invoiceId":"69ad3ba5fe6920d1f2186341"}
+[VerifyPayment] Expected vs Actual: {"expected":"2e1c4564fa3acb1649cf214c07b4cd767136ef951d62e860c3b895c4dd586fb7","actual":"2e1c4564fa3acb1649cf214c07b4cd767136ef951d62e860c3b895c4dd586fb7"}
+[VerifyPayment] Database lookup result: Found

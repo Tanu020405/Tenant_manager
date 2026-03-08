@@ -1,5 +1,6 @@
 import Renter from "../models/renterModel.js";
-import { NotFoundError, ValidationError } from "../middlewares/errorHandler.js";
+import User from "../models/userModel.js";
+import { NotFoundError, ValidationError, ConflictError } from "../middlewares/errorHandler.js";
 
 // Get all renters (with filtering, pagination, sorting)
 export const getRenters = async (req, res, next) => {
@@ -10,6 +11,7 @@ export const getRenters = async (req, res, next) => {
     if (active !== undefined) filter.active = active === "true";
 
     const renters = await Renter.find(filter)
+      .populate("property")
       .sort({ [sort]: order === "asc" ? 1 : -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -23,7 +25,7 @@ export const getRenters = async (req, res, next) => {
 // Get single renter
 export const getRenter = async (req, res, next) => {
   try {
-    const renter = await Renter.findOne({ _id: req.params.id, tenantId: req.tenantId, isDeleted: false });
+    const renter = await Renter.findOne({ _id: req.params.id, tenantId: req.tenantId, isDeleted: false }).populate("property");
     if (!renter) {
       throw new NotFoundError("Renter not found");
     }
@@ -42,8 +44,29 @@ export const createRenter = async (req, res, next) => {
       throw new ValidationError("Name and email are required");
     }
 
-    const renter = await Renter.create({ ...req.body, tenantId: req.tenantId });
-    res.status(201).json({ success: true, data: renter });
+    // Provision a User account for the renter so they can log in
+    const existingUser = await User.findOne({ email, tenantId: req.tenantId, isDeleted: false });
+    if (existingUser) {
+      throw new ConflictError("A user with this email already exists in this workspace.");
+    }
+
+    // Default password for newly created renters. In a real app, send an email to set password.
+    const defaultPassword = "password123";
+    const newUser = await User.create({
+      name,
+      email,
+      password: defaultPassword,
+      tenantId: req.tenantId,
+      role: "renter"
+    });
+
+    const renter = await Renter.create({
+      ...req.body,
+      tenantId: req.tenantId,
+      user: newUser._id
+    });
+
+    res.status(201).json({ success: true, data: renter, defaultPassword });
   } catch (err) {
     next(err);
   }
@@ -76,6 +99,11 @@ export const deleteRenter = async (req, res, next) => {
     );
     if (!renter) {
       throw new NotFoundError("Renter not found");
+    }
+
+    // Also soft-delete their associated user record so they lose login access
+    if (renter.user) {
+      await User.findByIdAndUpdate(renter.user, { isDeleted: true, deletedAt: new Date() });
     }
     res.json({ success: true, data: renter, message: "Renter deleted successfully" });
   } catch (err) {

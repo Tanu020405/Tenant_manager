@@ -9,6 +9,7 @@ const renterSchema = new mongoose.Schema(
     property: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     active: { type: Boolean, default: true },
+    leaseStartDate: { type: Date, default: Date.now },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
   },

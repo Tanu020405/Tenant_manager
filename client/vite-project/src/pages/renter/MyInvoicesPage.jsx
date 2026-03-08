@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRazorpay } from "react-razorpay";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
 import { myInvoicesRoute, createOrderRoute, verifyPaymentRoute } from "../../utils/api.js";
@@ -11,6 +12,7 @@ import { EmptyState } from "../../components/ui/EmptyState.jsx";
 const MyInvoicesPage = () => {
     const { tenantId } = useAuth();
     const api = useApi();
+    const { Razorpay } = useRazorpay();
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [payingId, setPayingId] = useState(null);
@@ -61,15 +63,18 @@ const MyInvoicesPage = () => {
                 theme: { color: "var(--color-accent, #3b82f6)" },
             };
 
-            if (!window.Razorpay) {
-                setError("Razorpay not loaded. Check your internet connection.");
+            if (!Razorpay) {
+                setError("Razorpay SDK is not loaded yet.");
                 return;
             }
 
-            const rzp = new window.Razorpay(options);
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                setError(`Payment failed: ${response.error.description}`);
+            });
             rzp.open();
         } catch (err) {
-            setError(err.response?.data?.error?.message || "Failed to initiate payment.");
+            setError(err.response?.data?.error?.message || err.message || "Failed to initiate payment.");
         } finally {
             setPayingId(null);
         }
