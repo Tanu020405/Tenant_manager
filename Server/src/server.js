@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { tenantResolver } from './middlewares/tenantResolver';
-
+const PORT = process.env.PORT || 5000;
 app.use(tenantResolver);
 
 const app = express();
@@ -11,7 +11,7 @@ app.use(express.json());
 mongoose.connect('mongodb://localhost:27017/multitenant', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    });
+});
 
 const productSchema = new mongoose.Schema({
     title: String,
@@ -27,16 +27,18 @@ const getTenantId = (host) => {
 };
 
 //routes
-app.get('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.send('Multitenant Product Service is running');
 });
 
 app.post('/api/products', async (req, res) => {
     const tenant = getTenantId(req.headers.host);
-    const product=await Product.create({ ...req.body, tenantId: tenant });
+    const product = await Product.create({ ...req.body, tenantId: tenant });
     res.status(201).send(product);
 });
 
-app.listen(4000, () => {
-    console.log('Product service listening on port 4000');
+
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
