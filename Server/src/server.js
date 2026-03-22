@@ -1,10 +1,9 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { tenantResolver } from './middlewares/tenantResolver';
+const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(tenantResolver);
-
-const app = express();
 app.use(express.json());
 
 // Connect to MongoDB
