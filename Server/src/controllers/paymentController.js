@@ -9,6 +9,9 @@ import {
     ConflictError,
     ForbiddenError,
 } from "../middlewares/errorHandler.js";
+import { sendMail } from "../utils/mailer.js";
+import { paymentConfirmedEmail } from "../utils/emailTemplates.js";
+import { generateInvoicePdfBuffer } from "../utils/generateInvoicePdf.js";
 
 // Lazy-init Razorpay instance to avoid crashing if keys aren't set during tests
 const getRazorpay = () => {
@@ -164,6 +167,20 @@ export const verifyPayment = async (req, res, next) => {
             message: "Payment verified and invoice marked as paid",
             data: { payment },
         });
+
+        // Fire-and-forget — send payment receipt PDF to renter
+        const renterUser = await Renter.findById(renterDoc._id).select("name email");
+        const emailData = paymentConfirmedEmail(invoice, payment, renterUser);
+        const pdfFilename = `receipt-${invoice.period}-${invoice._id.toString().slice(-8)}.pdf`;
+        generateInvoicePdfBuffer(invoice)
+            .then((pdfBuffer) => {
+                sendMail({
+                    to: renterUser?.email,
+                    ...emailData,
+                    attachments: [{ filename: pdfFilename, content: pdfBuffer, contentType: "application/pdf" }],
+                });
+            })
+            .catch((err) => console.error("[Mail] PDF attachment failed:", err.message));
     } catch (err) {
         next(err);
     }
@@ -248,16 +265,21 @@ export const handleWebhook = async (req, res, next) => {
                 // Create payment record only if it doesn't already exist
                 const exists = await Payment.findOne({ orderId });
                 if (!exists) {
-                    await Payment.create({
+                    const newPayment = await Payment.create({
                         tenantId: invoice.tenantId,
                         invoiceId: invoice._id,
                         renterId: invoice.renter,
-                        amount: amount / 100, // Razorpay sends paise
+                        amount: amount / 100,
                         transactionId,
                         orderId,
                         status: "success",
                         paidAt: new Date(),
                     });
+
+                    // Fire-and-forget — send receipt via webhook path too
+                    const renterDoc = await Renter.findById(invoice.renter).select("name email");
+                    const emailData = paymentConfirmedEmail(invoice, newPayment, renterDoc);
+                    sendMail({ to: renterDoc?.email, ...emailData });
                 }
 
                 console.log(`[Webhook] payment.captured — invoice ${invoice._id} marked paid.`);

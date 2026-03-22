@@ -1,32 +1,47 @@
 /**
  * invoiceScheduler.js
  *
- * Two exported functions:
- *
  * 1. markOverdueInvoices()     — run daily  (0 0 * * *)
  *    Marks pending invoices as "overdue" if dueDate has passed.
+ *    Sends overdue reminder email to each affected renter.
  *
  * 2. generateMonthlyInvoices() — run monthly (5 0 1 * *)
  *    Auto-generates invoices for all occupied properties on the 1st of each month.
+ *    Sends invoice-generated email to each renter.
  */
 
 import Invoice from "../models/invoiceModel.js";
 import Property from "../models/propertyModel.js";
+import { sendMail } from "./mailer.js";
+import { overdueReminderEmail, invoiceGeneratedEmail } from "./emailTemplates.js";
 
 // ─── Overdue Detection ────────────────────────────────────────────────────────
 
 export const markOverdueInvoices = async () => {
     try {
-        const result = await Invoice.updateMany(
-            {
-                status: "pending",
-                dueDate: { $lt: new Date() },
-                isDeleted: false,
-            },
-            { $set: { status: "overdue" } }
-        );
-        console.log(`[Scheduler] Marked ${result.modifiedCount} invoice(s) as overdue.`);
-        return result.modifiedCount;
+        // Switched from updateMany to a per-invoice loop so we can email each renter
+        const overdueInvoices = await Invoice.find({
+            status: "pending",
+            dueDate: { $lt: new Date() },
+            isDeleted: false,
+        }).populate("renter", "name email");
+
+        let marked = 0;
+
+        for (const invoice of overdueInvoices) {
+            invoice.status = "overdue";
+            await invoice.save();
+            marked++;
+
+            // Fire-and-forget overdue reminder
+            if (invoice.renter?.email) {
+                const emailData = overdueReminderEmail(invoice, invoice.renter);
+                sendMail({ to: invoice.renter.email, ...emailData });
+            }
+        }
+
+        console.log(`[Scheduler] Marked ${marked} invoice(s) as overdue.`);
+        return marked;
     } catch (err) {
         console.error("[Scheduler] Failed to mark overdue invoices:", err.message);
         throw err;
@@ -37,15 +52,12 @@ export const markOverdueInvoices = async () => {
 
 export const generateMonthlyInvoices = async () => {
     const now = new Date();
-    // Period format: "YYYY-MM" e.g. "2026-03"
     const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    // Due date: last day of current month
     const dueDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     console.log(`[Scheduler] Generating invoices for period: ${period}`);
 
     try {
-        // Find all occupied properties (have a currentRenter assigned)
         const occupiedProperties = await Property.find({
             available: false,
             currentRenter: { $exists: true, $ne: null },
@@ -58,13 +70,11 @@ export const generateMonthlyInvoices = async () => {
         for (const property of occupiedProperties) {
             const renter = property.currentRenter;
 
-            // Skip if renter has been soft-deleted or is inactive
             if (!renter || renter.isDeleted || !renter.active) {
                 skipped++;
                 continue;
             }
 
-            // App-level duplicate guard (DB unique index is the hard guarantee)
             const existing = await Invoice.findOne({
                 property: property._id,
                 renter: renter._id,
@@ -75,10 +85,10 @@ export const generateMonthlyInvoices = async () => {
 
             if (existing) {
                 skipped++;
-                continue; // Already generated — safe to skip silently
+                continue;
             }
 
-            await Invoice.create({
+            const invoice = await Invoice.create({
                 property: property._id,
                 renter: renter._id,
                 tenantId: property.tenantId,
@@ -93,6 +103,12 @@ export const generateMonthlyInvoices = async () => {
             });
 
             created++;
+
+            // Fire-and-forget — email renter about auto-generated invoice
+            if (renter.email) {
+                const emailData = invoiceGeneratedEmail(invoice, renter);
+                sendMail({ to: renter.email, ...emailData });
+            }
         }
 
         console.log(

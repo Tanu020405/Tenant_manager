@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
-import { invoicesRoute, generateInvoiceRoute, rentersRoute, propertiesRoute } from "../../utils/api.js";
+import { invoicesRoute, generateInvoiceRoute, rentersRoute, propertiesRoute, invoicePdfRoute } from "../../utils/api.js";
 import { Card } from "../../components/ui/Card.jsx";
 import { Button } from "../../components/ui/Button.jsx";
 import { Badge } from "../../components/ui/Badge.jsx";
@@ -23,6 +23,24 @@ const InvoicesPage = () => {
     const [form, setForm] = useState({ renterId: "", propertyId: "", period: "" });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [downloadingId, setDownloadingId] = useState(null);
+
+    const handleDownload = async (inv) => {
+        setDownloadingId(inv._id);
+        try {
+            const res = await api.get(invoicePdfRoute(tenantId, inv._id), { responseType: "blob" });
+            const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice-${inv.period}-${inv._id.slice(-8)}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            setError("Failed to download PDF.");
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     const load = async () => {
         setLoading(true);
@@ -86,7 +104,7 @@ const InvoicesPage = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-[color:var(--color-muted)]">
-                                    {["Period", "Renter", "Property", "Amount", "Due Date", "Status"].map(h => (
+                                    {["Period", "Renter", "Property", "Amount", "Due Date", "Status", ""].map(h => (
                                         <th key={h} className="px-4 py-3 font-medium">{h}</th>
                                     ))}
                                 </tr>
@@ -100,6 +118,16 @@ const InvoicesPage = () => {
                                         <td className="px-4 py-3 font-semibold text-[color:var(--color-primary)]">₹{inv.rentSnapshot?.toLocaleString() ?? inv.amount?.toLocaleString()}</td>
                                         <td className="px-4 py-3 text-[color:var(--color-muted)]">{new Date(inv.dueDate).toLocaleDateString("en-IN")}</td>
                                         <td className="px-4 py-3"><Badge label={inv.status} /></td>
+                                        <td className="px-4 py-3">
+                                            <button
+                                                onClick={() => handleDownload(inv)}
+                                                disabled={downloadingId === inv._id}
+                                                title="Download PDF"
+                                                className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-[color:var(--color-muted)] transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)] disabled:opacity-40"
+                                            >
+                                                {downloadingId === inv._id ? "..." : "📄 PDF"}
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

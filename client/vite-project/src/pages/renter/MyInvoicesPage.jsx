@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRazorpay } from "react-razorpay";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
-import { myInvoicesRoute, createOrderRoute, verifyPaymentRoute } from "../../utils/api.js";
+import { myInvoicesRoute, createOrderRoute, verifyPaymentRoute, invoicePdfRoute } from "../../utils/api.js";
 import { Card } from "../../components/ui/Card.jsx";
 import { Button } from "../../components/ui/Button.jsx";
 import { Badge } from "../../components/ui/Badge.jsx";
@@ -16,6 +16,7 @@ const MyInvoicesPage = () => {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [payingId, setPayingId] = useState(null);
+    const [downloadingId, setDownloadingId] = useState(null);
     const [error, setError] = useState("");
 
     const load = async () => {
@@ -28,6 +29,23 @@ const MyInvoicesPage = () => {
     };
 
     useEffect(() => { if (tenantId) load(); }, [tenantId]);
+
+    const handleDownload = async (inv) => {
+        setDownloadingId(inv._id);
+        try {
+            const res = await api.get(invoicePdfRoute(tenantId, inv._id), { responseType: "blob" });
+            const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice-${inv.period}-${inv._id.slice(-8)}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            setError("Failed to download PDF.");
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     const handlePay = async (invoice) => {
         setPayingId(invoice._id);
@@ -122,9 +140,18 @@ const MyInvoicesPage = () => {
                                         Pay Now
                                     </Button>
                                 ) : (
-                                    <p className="mt-2 text-xs text-emerald-600 font-medium">
-                                        ✓ Paid {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString("en-IN") : ""}
-                                    </p>
+                                    <div className="mt-2 flex flex-col items-end gap-1.5">
+                                        <p className="text-xs text-emerald-600 font-medium">
+                                            ✓ Paid {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString("en-IN") : ""}
+                                        </p>
+                                        <button
+                                            onClick={() => handleDownload(inv)}
+                                            disabled={downloadingId === inv._id}
+                                            className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-[color:var(--color-muted)] transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)] disabled:opacity-40"
+                                        >
+                                            {downloadingId === inv._id ? "Downloading..." : "📄 Download PDF"}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>

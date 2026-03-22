@@ -56,6 +56,7 @@ function Register() {
   return (
     <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.05fr,1fr] lg:p-12">
       <section className="space-y-6">
+        <img src="/logo.png" alt="PropConnect" className="h-[48px] w-auto object-contain" />
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
           Rental SaaS Platform
         </span>

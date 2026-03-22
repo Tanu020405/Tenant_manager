@@ -7,6 +7,7 @@ import {
   getInvoices,
   getMyInvoices,
   deleteInvoice,
+  downloadInvoicePdf,
 } from "../controllers/invoiceController.js";
 
 const router = express.Router({ mergeParams: true });
@@ -23,5 +24,8 @@ router.get("/my-invoices", requireRole("renter"), getMyInvoices);
 
 // delete is forbidden for all roles (audit trail preserved)
 router.delete("/:id", deleteInvoice);
+
+// PDF download — tenant (any invoice), renter (own only)
+router.get("/:id/pdf", requireRole("tenant", "renter"), downloadInvoicePdf);
 
 export default router;

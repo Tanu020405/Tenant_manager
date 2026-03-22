@@ -16,23 +16,10 @@ import cron from "node-cron";
 import { markOverdueInvoices, generateMonthlyInvoices } from "./src/utils/invoiceScheduler.js";
 
 const app = express();
-const allowedOrigins = (process.env.CLIENT_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-const defaultOrigins = ["http://localhost:5173", "http://localhost:5174"];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const normalizedOrigins = allowedOrigins.length ? allowedOrigins : defaultOrigins;
-      if (normalizedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
-    },
+    origin: true, // `true` dynamically sets the 'Access-Control-Allow-Origin' header to the requesting origin, allowing all while supporting credentials
     credentials: true,
   })
 );

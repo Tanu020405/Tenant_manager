@@ -6,7 +6,10 @@ import { StatCard } from "../../components/ui/StatCard.jsx";
 import { Card, CardHeader, CardBody } from "../../components/ui/Card.jsx";
 import { Badge } from "../../components/ui/Badge.jsx";
 import { PageSpinner } from "../../components/ui/Spinner.jsx";
-
+import { 
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+    PieChart, Pie, Cell 
+} from "recharts";
 const AnalyticsPage = () => {
     const { tenantId } = useAuth();
     const api = useApi();
@@ -35,6 +38,27 @@ const AnalyticsPage = () => {
 
     const totalRevenue = revenue.reduce((sum, r) => sum + r.totalRevenue, 0);
 
+    // Prepare chart data
+    const chartData = [...revenue].reverse().map(r => ({
+        period: r.period,
+        revenue: r.totalRevenue
+    }));
+
+    // Collection Health Data
+    const totalBilled = totalRevenue + pending.totalAmount + overdue.totalAmount;
+    const paidPercent = totalBilled > 0 ? Math.round((totalRevenue / totalBilled) * 100) : 0;
+    const healthData = [
+        { name: "Paid", value: totalRevenue, color: "var(--color-success)" },
+        { name: "Pending", value: pending.totalAmount, color: "var(--color-warning)" },
+        { name: "Overdue", value: overdue.totalAmount, color: "var(--color-danger)" },
+    ].filter(d => d.value > 0);
+
+    // Helper for days overdue
+    const getDaysOverdue = (dueDate) => {
+        const diffTime = Math.abs(new Date() - new Date(dueDate));
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
     if (loading) return <PageSpinner />;
 
     return (
@@ -51,32 +75,87 @@ const AnalyticsPage = () => {
                 <StatCard icon="🚨" label="Overdue Amount" value={`₹${overdue.totalAmount?.toLocaleString()}`} sub={`${overdue.count} overdue invoice(s)`} color="danger" />
             </div>
 
-            {/* Revenue by period */}
-            {revenue.length > 0 && (
-                <Card>
-                    <CardHeader title="Revenue by Period" subtitle="Monthly payment totals" />
-                    <CardBody>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-[color:var(--color-muted)]">
-                                    <th className="pb-3 font-medium">Period</th>
-                                    <th className="pb-3 font-medium">Payments</th>
-                                    <th className="pb-3 font-medium text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {revenue.map((r) => (
-                                    <tr key={r.period}>
-                                        <td className="py-3 font-mono text-xs text-[color:var(--color-text)]">{r.period}</td>
-                                        <td className="py-3 text-[color:var(--color-muted)]">{r.paymentCount}</td>
-                                        <td className="py-3 text-right font-bold text-[color:var(--color-primary)]">₹{r.totalRevenue.toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </CardBody>
-                </Card>
-            )}
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Revenue Chart */}
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader title="Revenue Trend" subtitle="Monthly collected rent" />
+                        <CardBody>
+                            {chartData.length > 0 ? (
+                                <div className="h-72 w-full pt-4">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                            <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted)" }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--color-muted)" }} tickFormatter={(val) => `₹${val/1000}k`} />
+                                            <Tooltip 
+                                                cursor={{ fill: "var(--color-accent)", opacity: 0.1 }}
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]}
+                                            />
+                                            <Bar dataKey="revenue" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="flex h-72 items-center justify-center text-sm text-[color:var(--color-muted)]">No revenue data yet</div>
+                            )}
+                        </CardBody>
+                    </Card>
+                </div>
+
+                {/* Collection Health */}
+                <div className="lg:col-span-1">
+                    <Card>
+                        <CardHeader title="Collection Health" subtitle="Overall invoice status" />
+                        <CardBody>
+                            <div className="flex flex-col items-center justify-center py-6">
+                                {totalBilled > 0 ? (
+                                    <>
+                                        <div className="relative h-40 w-40">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={healthData}
+                                                        innerRadius={60}
+                                                        outerRadius={80}
+                                                        paddingAngle={2}
+                                                        dataKey="value"
+                                                        stroke="none"
+                                                    >
+                                                        {healthData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="text-2xl font-bold text-[color:var(--color-primary)]">{paidPercent}%</span>
+                                                <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-muted)]">Paid</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-6 flex w-full flex-col space-y-2 px-4">
+                                            {healthData.map((d) => (
+                                                <div key={d.name} className="flex items-center justify-between text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: d.color }}></div>
+                                                        <span className="text-[color:var(--color-muted)]">{d.name}</span>
+                                                    </div>
+                                                    <span className="font-semibold text-[color:var(--color-text)]">₹{d.value.toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex h-40 items-center justify-center text-sm text-[color:var(--color-muted)]">No invoices generated</div>
+                                )}
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+            </div>
 
             {/* Overdue invoices */}
             {overdue.invoices?.length > 0 && (
@@ -87,8 +166,13 @@ const AnalyticsPage = () => {
                             {overdue.invoices.map((inv) => (
                                 <div key={inv._id} className="flex items-center justify-between rounded-xl border border-rose-100 bg-rose-50/50 px-4 py-3">
                                     <div>
-                                        <p className="text-sm font-semibold text-[color:var(--color-text)]">{inv.renter?.name || "Unknown"}</p>
-                                        <p className="text-xs text-[color:var(--color-muted)]">{inv.propertySnapshot?.name || inv.property?.name} • {inv.period}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-semibold text-[color:var(--color-text)]">{inv.renter?.name || "Unknown"}</p>
+                                            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                                                {getDaysOverdue(inv.dueDate)}d overdue
+                                            </span>
+                                        </div>
+                                        <p className="mt-0.5 text-xs text-[color:var(--color-muted)]">{inv.propertySnapshot?.name || inv.property?.name} • {inv.period}</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="font-bold text-rose-600">₹{inv.rentSnapshot?.toLocaleString()}</p>

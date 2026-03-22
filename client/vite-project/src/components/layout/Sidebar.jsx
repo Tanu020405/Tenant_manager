@@ -8,6 +8,7 @@ const tenantLinks = [
     { to: "/invoices", icon: "🧾", label: "Invoices" },
     { to: "/payments", icon: "💳", label: "Payments" },
     { to: "/analytics", icon: "📊", label: "Analytics" },
+    { to: "/settings", icon: "⚙️", label: "Settings" },
 ];
 
 const renterLinks = [
@@ -30,11 +31,25 @@ export const Sidebar = () => {
     return (
         <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-slate-200/70 bg-[color:var(--color-surface)]">
             {/* Brand */}
-            <div className="border-b border-slate-200/70 px-5 py-5">
-                <p className="text-[10px] uppercase tracking-widest text-[color:var(--color-muted)]">Workspace</p>
-                <p className="mt-0.5 truncate text-sm font-bold text-[color:var(--color-primary)]">
-                    {user?.tenantId || "—"}
-                </p>
+            <div className="border-b border-slate-200/70 px-5 py-5 flex items-center gap-3">
+                {user?.tenant?.assets?.logoUrl ? (
+                    <img 
+                        src={user.tenant.assets.logoUrl} 
+                        alt="Logo" 
+                        className="h-8 w-8 rounded object-contain"
+                        onError={(e) => e.target.style.display = 'none'}
+                    />
+                ) : (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-[color:var(--color-primary)] text-sm font-bold text-white">
+                        {user?.tenant?.name?.charAt(0) || user?.tenantId?.charAt(0) || "W"}
+                    </div>
+                )}
+                <div className="overflow-hidden">
+                    <p className="truncate text-[10px] uppercase tracking-widest text-[color:var(--color-muted)]">Workspace</p>
+                    <p className="truncate text-sm font-bold text-[color:var(--color-primary)]">
+                        {user?.tenant?.name || user?.tenantId || "—"}
+                    </p>
+                </div>
             </div>
 
             {/* Nav */}

@@ -22,6 +22,7 @@ export const renterRoute = (tid, id) => `${BASE}/api/tenants/${tid}/renters/${id
 export const invoicesRoute = (tid) => `${BASE}/api/tenants/${tid}/invoices`;
 export const myInvoicesRoute = (tid) => `${BASE}/api/tenants/${tid}/invoices/my-invoices`;
 export const generateInvoiceRoute = (tid) => `${BASE}/api/tenants/${tid}/invoices/generate`;
+export const invoicePdfRoute = (tid, id) => `${BASE}/api/tenants/${tid}/invoices/${id}/pdf`;
 
 // Payments
 export const paymentsRoute = (tid) => `${BASE}/api/tenants/${tid}/payments`;

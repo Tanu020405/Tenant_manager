@@ -2,6 +2,9 @@ import Invoice from "../models/invoiceModel.js";
 import Property from "../models/propertyModel.js";
 import Renter from "../models/renterModel.js";
 import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from "../middlewares/errorHandler.js";
+import { createInvoicePdfStream, generateInvoicePdfBuffer } from "../utils/generateInvoicePdf.js";
+import { sendMail } from "../utils/mailer.js";
+import { invoiceGeneratedEmail } from "../utils/emailTemplates.js";
 
 // Generate monthly invoice for a renter and property (tenant only)
 export const generateInvoice = async (req, res, next) => {
@@ -35,6 +38,23 @@ export const generateInvoice = async (req, res, next) => {
       period,
     });
     res.status(201).json({ success: true, data: invoice });
+
+    // Fire-and-forget — email renter with invoice PDF attached
+    const invoiceObj = { ...invoice.toObject(), propertySnapshot: { name: property.name, address: property.address } };
+    const email = invoiceGeneratedEmail(invoiceObj, renter);
+    generateInvoicePdfBuffer(invoiceObj)
+      .then((pdfBuffer) => {
+        sendMail({
+          to: renter.email,
+          ...email,
+          attachments: [{
+            filename: `invoice-${period}-${invoice._id.toString().slice(-8)}.pdf`,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          }],
+        });
+      })
+      .catch((err) => console.error("[Mail] PDF generation for attachment failed:", err.message));
   } catch (err) {
     next(err);
   }
@@ -86,6 +106,37 @@ export const getMyInvoices = async (req, res, next) => {
       .limit(Number(limit));
     const total = await Invoice.countDocuments(filter);
     res.json({ success: true, data: invoices, total });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Download invoice as PDF (tenant sees any; renter sees own only)
+export const downloadInvoicePdf = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const filter = { _id: id, tenantId: req.tenantId, isDeleted: false };
+
+    // Renters can only fetch their own invoices
+    if (req.user.role === "renter") {
+      const renterDoc = await Renter.findOne({ user: req.user.id, tenantId: req.tenantId, isDeleted: false });
+      if (!renterDoc) throw new ForbiddenError("Renter profile not found");
+      filter.renter = renterDoc._id;
+    }
+
+    const invoice = await Invoice.findOne(filter).populate("renter", "name email phone");
+    if (!invoice) throw new NotFoundError("Invoice not found or access denied");
+
+    const filename = `invoice-${invoice.period}-${invoice._id.toString().slice(-8)}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+
+    const pdfStream = createInvoicePdfStream(invoice);
+    pdfStream.on("error", (err) => {
+      console.error("[PDF] Stream error:", err.message);
+      res.end(); // close cleanly — headers already sent, can't send JSON error
+    });
+    pdfStream.pipe(res);
   } catch (err) {
     next(err);
   }
