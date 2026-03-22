@@ -1,51 +1,51 @@
 /**
  * mailer.js
- * Lazy-initialised Nodemailer transporter.
- * All SMTP config is read from env vars — missing config logs a warning,
- * never throws (so a broken SMTP setup never crashes the API).
+ * Sends email using Brevo HTTP API to bypass Render's SMTP block entirely!
  */
 
-import nodemailer from "nodemailer";
-
-let _transporter = null;
-
-function getTransporter() {
-    if (_transporter) return _transporter;
-
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-        console.warn("[Mailer] SMTP credentials not configured — emails are disabled.");
-        return null;
-    }
-
-    _transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT || 465),
-        secure: process.env.SMTP_SECURE !== "false", // default true
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-
-    return _transporter;
-}
-
-/**
- * Send an email. Fire-and-forget — errors are logged, never propagated.
- *
- * @param {{ to: string, subject: string, html: string, attachments?: object[] }} options
- */
 export async function sendMail({ to, subject, html, attachments }) {
     if (!to) return;
 
-    const transporter = getTransporter();
-    if (!transporter) return;
+    const API_KEY = process.env.BREVO_API_KEY || "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";
+    
+    // We can still optionally use the .env fallbacks from before
+    const senderEmail = process.env.SMTP_USER || "tanishqsingh233001@gmail.com";
+    const senderName = "PropConnect";
 
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const body = {
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: html,
+    };
+
+    if (attachments && attachments.length > 0) {
+        body.attachment = attachments.map(att => ({
+            name: att.filename,
+            // Brevo expects a base64 string for attachments
+            content: att.content.toString("base64")
+        }));
+    }
 
     try {
-        const info = await transporter.sendMail({ from, to, subject, html, attachments });
-        console.log(`[Mailer] Sent "${subject}" to ${to} — messageId: ${info.messageId}`);
+        const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "api-key": API_KEY
+            },
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+            console.error(`[Mailer] Failed via Brevo API:`, result);
+        } else {
+            console.log(`[Mailer] Successfully sent "${subject}" to ${to} via Brevo HTTP! MessageId:`, result?.messageId || "N/A");
+        }
     } catch (err) {
-        console.error(`[Mailer] Failed to send "${subject}" to ${to}:`, err.message);
+        console.error(`[Mailer] Network failure sending email via Brevo:`, err.message);
     }
 }
