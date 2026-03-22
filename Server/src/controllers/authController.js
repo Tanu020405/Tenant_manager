@@ -1,4 +1,10 @@
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import User from "../models/userModel.js";
+import Tenant from "../models/tenantModel.js";
+import { ValidationError, ConflictError } from "../middlewares/errorHandler.js";
+import { sendMail } from "../utils/mailer.js";
 import dotenv from "dotenv";
 import User from "../models/userModel.js";
 import Tenant from "../models/tenantModel.js";
@@ -126,3 +132,67 @@ export const loginUser = async (req, res, next) => {
     next(err);
   }
 };
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) throw new ValidationError("Email is required");
+
+    const user = await User.findOne({ email, isDeleted: false });
+    if (!user) {
+      return res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hr
+    await user.save();
+
+    const origin = req.headers.origin || "http://localhost:5173";
+    const resetUrl = `${origin}/reset-password/${resetToken}`;
+
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1f2937;">Password Reset Request</h2>
+        <p style="color: #4b5563;">You requested a password reset for your PropConnect account. Click the button below to set a new password:</p>
+        <a href="${resetUrl}" style="display:inline-block; margin-top: 15px; margin-bottom: 20px; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600;">Reset Password</a>
+        <p style="color: #6b7280; font-size: 13px;">If you did not request this, please ignore this email. This link will expire in 1 hour.</p>
+      </div>
+    `;
+
+    // Fire & forget
+    sendMail({ to: user.email, subject: "Password Reset Request", html })
+      .catch(err => console.error("[Auth] Forgot password email failed:", err));
+
+    res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) throw new ValidationError("New password is required");
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+      isDeleted: false
+    });
+
+    if (!user) throw new ValidationError("Password reset token is invalid or has expired.");
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Password has been successfully updated." });
+  } catch (err) {
+    next(err);
+  }
+};
+

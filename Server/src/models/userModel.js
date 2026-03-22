@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["superAdmin", "tenant", "renter"], default: "tenant" },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

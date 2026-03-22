@@ -3,6 +3,8 @@ const BASE = import.meta.env?.VITE_API_URL || "https://tenant-manager-yx3y.onren
 export const authRoutes = {
   register: `${BASE}/api/user/register`,
   login: `${BASE}/api/user/login`,
+  forgotPassword: `${BASE}/api/user/forgot-password`,
+  resetPassword: (token) => `${BASE}/api/user/reset-password/${token}`,
   me: `${BASE}/api/user/me`,
   tenantProfile: `${BASE}/api/user/tenant/profile`,
 };

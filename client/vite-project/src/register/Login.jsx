@@ -47,7 +47,7 @@ function Login() {
   return (
     <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.05fr,1fr] lg:p-12">
       <section className="space-y-6">
-        <img src="/logo.png" alt="PropConnect" className="h-[48px] w-auto object-contain" />
+        <img src="/logo.png" alt="PropConnect" className="h-[80px] w-auto object-contain" />
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
           Welcome back
         </span>
@@ -93,7 +93,12 @@ function Login() {
         </label>
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Password</span>
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-[color:var(--color-text)]">Password</span>
+            <Link to="/forgot-password" className="text-xs font-semibold text-[color:var(--color-accent)] hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <input
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
             type="password"

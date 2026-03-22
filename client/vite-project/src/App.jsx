@@ -9,6 +9,8 @@ import { AppShell } from "./components/layout/AppShell.jsx";
 // Auth pages (keep existing)
 import Register from "./register/Register.jsx";
 import Login from "./register/Login.jsx";
+import ForgotPassword from "./register/ForgotPassword.jsx";
+import ResetPassword from "./register/ResetPassword.jsx";
 
 // Tenant pages
 import PropertiesPage from "./pages/tenant/PropertiesPage.jsx";
@@ -41,6 +43,8 @@ function App() {
         {/* Public */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
 
         {/* Role-based home redirect */}
         <Route path="/" element={<RoleHome />} />
