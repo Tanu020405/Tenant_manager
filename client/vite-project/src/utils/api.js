@@ -1,4 +1,4 @@
-const BASE = import.meta.env?.VITE_API_URL || "http://localhost:5000";
+const BASE = import.meta.env?.VITE_API_URL || "https://tenant-manager-yx3y.onrender.com";
 
 export const authRoutes = {
   register: `${BASE}/api/user/register`,
