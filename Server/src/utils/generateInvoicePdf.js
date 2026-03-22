@@ -6,8 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Asset paths
 const LOGO_PATH = path.join(__dirname, "../assets/logo.png");
-const FONT_REGULAR = "C:\\Windows\\Fonts\\segoeui.ttf";
-const FONT_BOLD = "C:\\Windows\\Fonts\\segoeuib.ttf";
+const FONT_REGULAR = "Helvetica";
+const FONT_BOLD = "Helvetica-Bold";
 
 // Colors — match sample (gold accent, dark navy text)
 const ACCENT = "#2563eb";       // brand blue for header/total row
@@ -67,17 +67,16 @@ export function buildInvoicePdf(doc, invoice) {
     const M  = 50;                   // margin
     const CW = W - M * 2;            // content width = 495
 
-    // ── Register fonts ──────────────────────────────────────────────────────
-    doc.registerFont("Regular", FONT_REGULAR);
-    doc.registerFont("Bold",    FONT_BOLD);
+    // ── Fonts ──────────────────────────────────────────────────────
+    // Using standard PDFKit fonts (no registration needed)
 
     // ── TOP: Logo (right) + Company name (left) ─────────────────────────────
     let y = M;
 
     // Company name / address block (left)
-    doc.font("Bold").fontSize(13).fillColor(DARK)
+    doc.font(FONT_BOLD).fontSize(13).fillColor(DARK)
         .text("PROPCONNECT", M, y);
-    doc.font("Regular").fontSize(8).fillColor(MUTED)
+    doc.font(FONT_REGULAR).fontSize(8).fillColor(MUTED)
         .text("Tenant & Property Management", M, y + 16);
     if (propertySnapshot?.address) {
         doc.text(propertySnapshot.address, M, y + 27, { width: CW * 0.45 });
@@ -94,10 +93,10 @@ export function buildInvoicePdf(doc, invoice) {
 
     // ── TITLE: "RENTAL INVOICE" ──────────────────────────────────────────────
     // Right-aligned large title (matching sample)
-    doc.font("Bold").fontSize(28).fillColor(GOLD)
+    doc.font(FONT_BOLD).fontSize(28).fillColor(GOLD)
         .text("RENTAL", 0, y, { width: W - M, align: "right" });
     y += 32;
-    doc.font("Bold").fontSize(28).fillColor(GOLD)
+    doc.font(FONT_BOLD).fontSize(28).fillColor(GOLD)
         .text("INVOICE", 0, y, { width: W - M, align: "right" });
     y += 44;
 
@@ -107,10 +106,10 @@ export function buildInvoicePdf(doc, invoice) {
     const billY = y;
 
     // Bill To block (left side)
-    doc.font("Bold").fontSize(9).fillColor(GOLD).text("Bill To", M, billY);
-    doc.font("Bold").fontSize(13).fillColor(DARK)
+    doc.font(FONT_BOLD).fontSize(9).fillColor(GOLD).text("Bill To", M, billY);
+    doc.font(FONT_BOLD).fontSize(13).fillColor(DARK)
         .text(renter?.name || "—", M, billY + 14);
-    doc.font("Regular").fontSize(9).fillColor(MUTED)
+    doc.font(FONT_REGULAR).fontSize(9).fillColor(MUTED)
         .text(renter?.email || "", M, billY + 30);
     if (renter?.phone) {
         doc.text(renter.phone, M, billY + 42);
@@ -139,7 +138,7 @@ export function buildInvoicePdf(doc, invoice) {
 
     // Table header
     doc.rect(M, y, CW, ROW_H).fill(GOLD);
-    doc.font("Bold").fontSize(9).fillColor("white")
+    doc.font(FONT_BOLD).fontSize(9).fillColor("white")
         .text("QTY",         COL.qty,   y + 7, { width: 35 })
         .text("Description", COL.desc,  y + 7, { width: CW * 0.55 })
         .text("Unit Price",  COL.price, y + 7, { width: CW * 0.16, align: "right" })
@@ -155,7 +154,7 @@ export function buildInvoicePdf(doc, invoice) {
     lineItems.forEach((item, i) => {
         const rowY = y + i * ROW_H;
         if (i % 2 === 1) doc.rect(M, rowY, CW, ROW_H).fill("#fafaf7");
-        doc.font("Regular").fontSize(9).fillColor(DARK)
+        doc.font(FONT_REGULAR).fontSize(9).fillColor(DARK)
             .text(String(item.qty),                          COL.qty,   rowY + 7, { width: 35 })
             .text(item.desc,                                 COL.desc,  rowY + 7, { width: CW * 0.55 })
             .text(item.price.toLocaleString("en-IN"),        COL.price, rowY + 7, { width: CW * 0.16, align: "right" })
@@ -171,7 +170,7 @@ export function buildInvoicePdf(doc, invoice) {
     const totW = CW * 0.45;
 
     // Subtotal
-    doc.font("Regular").fontSize(9).fillColor(DARK)
+    doc.font(FONT_REGULAR).fontSize(9).fillColor(DARK)
         .text("Subtotal", totX, y, { width: totW * 0.55 })
         .text(safeAmount.toLocaleString("en-IN"), totX + totW * 0.55, y, { width: totW * 0.45, align: "right" });
     y += 18;
@@ -181,9 +180,9 @@ export function buildInvoicePdf(doc, invoice) {
 
     // Total row — colored
     const totalLabel = `Total (INR)`;
-    doc.font("Bold").fontSize(10).fillColor(GOLD)
+    doc.font(FONT_BOLD).fontSize(10).fillColor(GOLD)
         .text(totalLabel, totX, y, { width: totW * 0.55 });
-    doc.font("Bold").fontSize(10).fillColor(GOLD)
+    doc.font(FONT_BOLD).fontSize(10).fillColor(GOLD)
         .text(`INR ${safeAmount.toLocaleString("en-IN")}`, totX + totW * 0.55, y, {
             width: totW * 0.45,
             align: "right",
@@ -197,31 +196,31 @@ export function buildInvoicePdf(doc, invoice) {
     const statusColor =
         status === "paid"    ? "#16a34a" :
         status === "overdue" ? "#dc2626" : "#d97706";
-    doc.font("Bold").fontSize(9).fillColor(statusColor)
+    doc.font(FONT_BOLD).fontSize(9).fillColor(statusColor)
         .text(`Status: ${status?.toUpperCase() || "PENDING"}`, M, y);
     y += 20;
 
     // ── NOTES ────────────────────────────────────────────────────────────────
     if (notes) {
         y += 8;
-        doc.font("Bold").fontSize(9).fillColor(GOLD).text("Notes", M, y);
+        doc.font(FONT_BOLD).fontSize(9).fillColor(GOLD).text("Notes", M, y);
         y += 13;
-        doc.font("Regular").fontSize(9).fillColor(DARK)
+        doc.font(FONT_REGULAR).fontSize(9).fillColor(DARK)
             .text(notes, M, y, { width: CW });
         y = doc.y + 8;
     }
 
     // ── TERMS & CONDITIONS ───────────────────────────────────────────────────
     y += 20;
-    doc.font("Bold").fontSize(9).fillColor(GOLD).text("Terms and Conditions", M, y);
+    doc.font(FONT_BOLD).fontSize(9).fillColor(GOLD).text("Terms and Conditions", M, y);
     y += 13;
-    doc.font("Regular").fontSize(8).fillColor(MUTED)
+    doc.font(FONT_REGULAR).fontSize(8).fillColor(MUTED)
         .text("Payment is due by the due date shown above.", M, y)
         .text("This is a system-generated invoice — no signature required.", M, y + 12);
 
     // ── FOOTER LINE ──────────────────────────────────────────────────────────
     rule(doc, M, H - 36, CW, LINE, 0.5);
-    doc.font("Regular").fontSize(7).fillColor(MUTED)
+    doc.font(FONT_REGULAR).fontSize(7).fillColor(MUTED)
         .text("PROPCONNECT · Tenant & Property Management · System Generated",
               M, H - 26, { width: CW, align: "center" });
 }

@@ -15,5 +15,28 @@ export const useApi = () => {
         },
     });
 
+    // Add automatic retry for Render cold starts (which look like Network/CORS errors)
+    instance.interceptors.response.use(
+        (response) => response,
+        async (error) => {
+            const config = error.config;
+            if (!config || config._retryCount >= 3) {
+                return Promise.reject(error);
+            }
+            
+            // Render cold start often throws a generic Network Error or 502/503
+            if (error.message === "Network Error" || (error.response && error.response.status >= 500)) {
+                config._retryCount = (config._retryCount || 0) + 1;
+                
+                // Wait 2.5 seconds before retrying (gives Render time to wake up)
+                await new Promise(resolve => setTimeout(resolve, 2500));
+                
+                return instance(config);
+            }
+            
+            return Promise.reject(error);
+        }
+    );
+
     return instance;
 };
