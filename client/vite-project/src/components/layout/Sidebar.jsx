@@ -8,7 +8,6 @@ const tenantLinks = [
     { to: "/invoices", icon: "🧾", label: "Invoices" },
     { to: "/payments", icon: "💳", label: "Payments" },
     { to: "/analytics", icon: "📊", label: "Analytics" },
-    { to: "/settings", icon: "⚙️", label: "Settings" },
 ];
 
 const renterLinks = [

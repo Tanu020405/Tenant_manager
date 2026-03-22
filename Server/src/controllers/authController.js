@@ -108,18 +108,18 @@ export const registerUser = async (req, res, next) => {
 
 export const loginUser = async (req, res, next) => {
   try {
-    const { email, password, tenantId } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !password || !tenantId) {
-      throw new ValidationError("email, password, and tenantId are required");
+    if (!email || !password) {
+      throw new ValidationError("email and password are required");
     }
 
-    const user = await User.findOne({ email, tenantId, isDeleted: false });
+    const user = await User.findOne({ email, isDeleted: false });
     if (!user || user.password !== password) {
       throw new ValidationError("Invalid credentials");
     }
 
-    const tenant = await ensureTenant(tenantId);
+    const tenant = await ensureTenant(user.tenantId);
     const token = generateToken(user);
     res.status(200).json({ success: true, data: { user: sanitizeUser(user), tenant, token } });
   } catch (err) {

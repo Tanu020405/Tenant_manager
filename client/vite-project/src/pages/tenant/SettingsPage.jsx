@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
+import { authRoutes } from "../../utils/api.js";
 import { Card, CardHeader, CardBody } from "../../components/ui/Card.jsx";
 import { PageSpinner } from "../../components/ui/Spinner.jsx";
 import { applyTheme } from "../../utils/theme.js";
@@ -27,7 +28,7 @@ const SettingsPage = () => {
     useEffect(() => {
         (async () => {
             try {
-                const res = await api.get("/user/tenant/profile");
+                const res = await api.get(authRoutes.tenantProfile);
                 const tenant = res.data.data;
                 setName(tenant.name || "");
                 setLogoUrl(tenant.assets?.logoUrl || "");
@@ -53,7 +54,7 @@ const SettingsPage = () => {
         setSaving(true);
         setMessage({ type: "", text: "" });
         try {
-            const res = await api.put("/user/tenant/profile", { name, logoUrl, theme });
+            const res = await api.put(authRoutes.tenantProfile, { name, logoUrl, theme });
             // Update auth context so sidebar/header update immediately
             if (setTenantData) setTenantData(res.data.data);
             setMessage({ type: "success", text: "Settings saved successfully" });

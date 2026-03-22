@@ -16,7 +16,6 @@ import RentersPage from "./pages/tenant/RentersPage.jsx";
 import InvoicesPage from "./pages/tenant/InvoicesPage.jsx";
 import PaymentsPage from "./pages/tenant/PaymentsPage.jsx";
 import AnalyticsPage from "./pages/tenant/AnalyticsPage.jsx";
-import SettingsPage from "./pages/tenant/SettingsPage.jsx";
 
 // Renter pages
 import MyInvoicesPage from "./pages/renter/MyInvoicesPage.jsx";
@@ -53,7 +52,6 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* Renter — authenticated layout */}

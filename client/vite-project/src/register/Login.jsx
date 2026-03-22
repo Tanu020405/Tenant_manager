@@ -10,7 +10,6 @@ function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    tenantId: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -53,25 +52,11 @@ function Login() {
           Welcome back
         </span>
         <h1 className="text-3xl font-semibold text-[color:var(--color-primary)] sm:text-4xl">
-          Hop into your workspace and pick up where you left off.
+          Welcome back!
         </h1>
         <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-          Tenant-aware JWTs ensure you only ever see your own data. Enter your workspace ID to sign in.
+          Sign in to your account to pick up where you left off.
         </p>
-        <ul className="grid gap-3 text-sm text-[color:var(--color-text)] sm:grid-cols-2">
-          <li className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <span className="block text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Tip
-            </span>
-            Keep a note of which tenantId you register with.
-          </li>
-          <li className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <span className="block text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)]">
-              Theme
-            </span>
-            Colors shift per tenant once you sign in.
-          </li>
-        </ul>
       </section>
 
       <form
@@ -120,18 +105,6 @@ function Login() {
           />
         </label>
 
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Tenant workspace</span>
-          <input
-            type="text"
-            name="tenantId"
-            value={formData.tenantId}
-            onChange={handleChange}
-            placeholder="e.g. workspace-123"
-            required
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-          />
-        </label>
 
         <button
           type="submit"

@@ -159,7 +159,7 @@ function Register() {
         </label>
 
         <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Tenant workspace</span>
+          <span className="font-medium text-[color:var(--color-text)]">Workspace ID</span>
           <input
             type="text"
             name="tenantId"
