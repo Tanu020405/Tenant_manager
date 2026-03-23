@@ -64,8 +64,8 @@ app.use("/api/analytics", analyticsRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server started on port ${PORT}`);
 
   // Daily at midnight — mark pending invoices as overdue
   cron.schedule("0 0 * * *", async () => {
