@@ -5,10 +5,6 @@ import User from "../models/userModel.js";
 import Tenant from "../models/tenantModel.js";
 import { ValidationError, ConflictError } from "../middlewares/errorHandler.js";
 import { sendMail } from "../utils/mailer.js";
-import dotenv from "dotenv";
-import User from "../models/userModel.js";
-import Tenant from "../models/tenantModel.js";
-import { ValidationError, ConflictError } from "../middlewares/errorHandler.js";
 
 dotenv.config();
 
