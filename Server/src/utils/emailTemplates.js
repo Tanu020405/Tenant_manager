@@ -9,8 +9,10 @@ const GOLD   = "#C8922A";
 const DARK   = "#1e293b";
 const MUTED  = "#64748b";
 const BG     = "#f8fafc";
+const CLIENT_URL = process.env.CLIENT_URL || "https://tenant-manager-yx3y.onrender.com";
 
 // ─── shared layout wrapper ────────────────────────────────────────────────────
+
 
 function layout(title, bodyHtml) {
     return `<!DOCTYPE html>
@@ -53,6 +55,15 @@ function infoRow(label, value, highlight = false) {
     </tr>`;
 }
 
+/** Reusable button for emails */
+function primaryButton(label, url) {
+    return `<div style="text-align:center;margin:24px 0;">
+      <a href="${url}" style="background-color:${BRAND};color:#fff;border-radius:6px;padding:12px 24px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+        ${label}
+      </a>
+    </div>`;
+}
+
 // ─── 1. Invoice Generated ─────────────────────────────────────────────────────
 
 /**
@@ -77,8 +88,10 @@ export function invoiceGeneratedEmail(invoice, renter) {
         ${infoRow("Amount Due", amountStr, true)}
       </table>
 
-      <p style="font-size:13px;color:${MUTED};margin:0;">
-        Please log in to your PropConnect account to view and pay your invoice.
+      ${primaryButton("Pay Now", `${CLIENT_URL}/my-invoices`)}
+
+      <p style="font-size:13px;color:${MUTED};margin:0;text-align:center;">
+        Please log in to your PropConnect account if you need further assistance.
       </p>
     `);
 
@@ -120,8 +133,10 @@ export function paymentConfirmedEmail(invoice, payment, renter) {
         ${infoRow("Invoice #", invoiceNum)}
       </table>
 
-      <p style="font-size:13px;color:${MUTED};margin:0;">
-        You can download your payment receipt from the PropConnect portal.
+      ${primaryButton("View Dashboard", `${CLIENT_URL}/my-payments`)}
+
+      <p style="font-size:13px;color:${MUTED};margin:0;text-align:center;">
+        Thank you for your prompt payment!
       </p>
     `);
 
@@ -162,8 +177,10 @@ export function overdueReminderEmail(invoice, renter) {
         ${infoRow("Amount Due", amountStr, true)}
       </table>
 
-      <p style="font-size:13px;color:${MUTED};margin:0;">
-        Please log in to PropConnect to pay your overdue invoice immediately.
+      ${primaryButton("Pay Overdue Invoice", `${CLIENT_URL}/my-invoices`)}
+
+      <p style="font-size:13px;color:${MUTED};margin:0;text-align:center;">
+        Please log in to PropConnect to manage your account.
       </p>
     `);
 
