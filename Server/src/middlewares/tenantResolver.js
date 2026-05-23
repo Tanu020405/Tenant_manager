@@ -4,7 +4,6 @@ export const tenantResolver = (req, res, next) => {
   try {
     const pathTenant = req.params?.tenantId || req.params?.tenant;
     const headerTenant = req.header("x-tenant-id");
-    const queryTenant = req.query?.tenant;
     const tokenTenant = req.user?.tenantId;
 
     const hostHeader = req.headers?.host || "";
@@ -23,8 +22,7 @@ export const tenantResolver = (req, res, next) => {
       }
     }
 
-    const resolvedTenant =
-      pathTenant || headerTenant || queryTenant || subdomainTenant || tokenTenant;
+    const resolvedTenant = pathTenant || headerTenant || subdomainTenant || tokenTenant;
 
     if (!resolvedTenant) {
       return next(new ValidationError("Tenant context is required"));

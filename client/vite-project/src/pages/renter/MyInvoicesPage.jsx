@@ -3,11 +3,16 @@ import { useRazorpay } from "react-razorpay";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
 import { myInvoicesRoute, createOrderRoute, verifyPaymentRoute, invoicePdfRoute } from "../../utils/api.js";
-import { Card } from "../../components/ui/Card.jsx";
 import { Button } from "../../components/ui/Button.jsx";
 import { Badge } from "../../components/ui/Badge.jsx";
 import { PageSpinner } from "../../components/ui/Spinner.jsx";
 import { EmptyState } from "../../components/ui/EmptyState.jsx";
+import { motion } from "framer-motion";
+
+const cardVariants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] } }),
+};
 
 const MyInvoicesPage = () => {
     const { tenantId } = useAuth();
@@ -101,39 +106,46 @@ const MyInvoicesPage = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-[color:var(--color-primary)]">My Invoices</h1>
-                <p className="text-sm text-[color:var(--color-muted)]">View and pay your rental invoices</p>
+                <h1 className="text-2xl font-semibold text-on-surface font-headline">My Invoices</h1>
+                <p className="text-sm text-on-surface-variant mt-1">View and pay your rental invoices</p>
             </div>
 
-            {error && <p className="rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-600">{error}</p>}
+            {error && <p className="rounded-xl bg-error-container/40 border border-error/20 px-4 py-2.5 text-sm text-on-error-container">{error}</p>}
 
             {loading ? <PageSpinner /> : invoices.length === 0 ? (
                 <EmptyState icon="🧾" title="No invoices yet" description="Your landlord hasn't generated any invoices yet." />
             ) : (
                 <div className="space-y-3">
-                    {invoices.map((inv) => (
-                        <div key={inv._id} className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-[color:var(--color-surface)] px-5 py-4 shadow-sm">
+                    {invoices.map((inv, i) => (
+                        <motion.div
+                            key={inv._id}
+                            custom={i}
+                            initial="hidden"
+                            animate="visible"
+                            variants={cardVariants}
+                            className="flex items-center justify-between rounded-2xl ghost-border bg-surface-container-lowest px-5 py-4 shadow-ambient-sm hover:shadow-ambient transition-all duration-200 hover:-translate-y-0.5"
+                        >
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <p className="font-semibold text-[color:var(--color-primary)]">
+                                    <p className="font-semibold text-on-surface">
                                         {inv.propertySnapshot?.name || "Property"}
                                     </p>
                                     <Badge label={inv.status} />
                                 </div>
-                                <p className="mt-0.5 text-xs text-[color:var(--color-muted)]">
+                                <p className="mt-1 text-xs text-on-surface-variant">
                                     Period: {inv.period} &nbsp;·&nbsp; Due: {new Date(inv.dueDate).toLocaleDateString("en-IN")}
                                 </p>
                                 {inv.propertySnapshot?.address && (
-                                    <p className="text-xs text-[color:var(--color-muted)]">{inv.propertySnapshot.address}</p>
+                                    <p className="text-xs text-on-surface-variant">{inv.propertySnapshot.address}</p>
                                 )}
                             </div>
                             <div className="text-right">
-                                <p className="text-xl font-bold text-[color:var(--color-primary)]">
+                                <p className="text-xl font-bold text-primary">
                                     ₹{inv.rentSnapshot?.toLocaleString() ?? inv.amount?.toLocaleString()}
                                 </p>
                                 {inv.status === "pending" || inv.status === "overdue" ? (
                                     <Button
-                                        className="mt-2 text-xs"
+                                        className="mt-2 text-xs pulse-glow"
                                         loading={payingId === inv._id}
                                         onClick={() => handlePay(inv)}
                                     >
@@ -141,20 +153,22 @@ const MyInvoicesPage = () => {
                                     </Button>
                                 ) : (
                                     <div className="mt-2 flex flex-col items-end gap-1.5">
-                                        <p className="text-xs text-emerald-600 font-medium">
+                                        <p className="text-xs text-on-surface-variant font-medium">
                                             ✓ Paid {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString("en-IN") : ""}
                                         </p>
                                         <button
                                             onClick={() => handleDownload(inv)}
                                             disabled={downloadingId === inv._id}
-                                            className="flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-[color:var(--color-muted)] transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)] disabled:opacity-40"
+                                            className="flex items-center gap-1.5 rounded-lg ghost-border px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-all duration-200 hover:text-primary hover:-translate-y-0.5 disabled:opacity-40"
                                         >
-                                            {downloadingId === inv._id ? "Downloading..." : "📄 Download PDF"}
+                                            {downloadingId === inv._id ? (
+                                                <span className="h-3 w-3 animate-spin rounded-full border border-current/30 border-t-current" />
+                                            ) : "📄"} Download PDF
                                         </button>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </div>
             )}

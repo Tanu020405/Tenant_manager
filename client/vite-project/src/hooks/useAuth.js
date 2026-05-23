@@ -2,7 +2,7 @@
  * useAuth — reads the authenticated user and token from localStorage.
  */
 export const useAuth = () => {
-    const token = localStorage.getItem("token");
+    const readToken = localStorage.getItem("token");
     const raw = localStorage.getItem("user");
 
     let user = null;
@@ -10,6 +10,28 @@ export const useAuth = () => {
         user = raw ? JSON.parse(raw) : null;
     } catch {
         localStorage.removeItem("user");
+    }
+
+    const isTokenExpired = (jwtToken) => {
+        if (!jwtToken) return true;
+        try {
+            const payloadRaw = jwtToken.split(".")[1];
+            const base64 = payloadRaw.replace(/-/g, "+").replace(/_/g, "/");
+            const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+            const payload = JSON.parse(atob(padded));
+            if (!payload?.exp) return false;
+            return payload.exp * 1000 <= Date.now();
+        } catch {
+            return true;
+        }
+    };
+
+    let token = readToken;
+    if (isTokenExpired(readToken)) {
+        token = null;
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        user = null;
     }
 
     // Allow components (like Settings) to update the cached tenant data

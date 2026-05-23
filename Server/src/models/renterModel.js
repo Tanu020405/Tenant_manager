@@ -16,7 +16,10 @@ const renterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-renterSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+renterSchema.index(
+  { tenantId: 1, email: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
 
 const Renter = mongoose.model("Renter", renterSchema);
 export default Renter;

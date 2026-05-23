@@ -3,15 +3,14 @@ import { useAuth } from "./useAuth.js";
 
 /**
  * useApi — returns an axios instance pre-configured with
- * Authorization header and x-tenant-id for the current user.
+ * Authorization header for the current user.
  */
 export const useApi = () => {
-    const { token, tenantId } = useAuth();
+    const { token } = useAuth();
 
     const instance = axios.create({
         headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            ...(tenantId && { "x-tenant-id": tenantId }),
         },
     });
 
@@ -21,6 +20,12 @@ export const useApi = () => {
         async (error) => {
             const config = error.config;
             if (!config || config._retryCount >= 3) {
+                return Promise.reject(error);
+            }
+
+            const method = String(config.method || "get").toLowerCase();
+            const isIdempotentMethod = method === "get" || method === "head";
+            if (!isIdempotentMethod) {
                 return Promise.reject(error);
             }
             

@@ -3,8 +3,18 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { persistTheme } from "../utils/theme.js";
 import { authRoutes } from "../utils/api.js";
+import { DarkModeToggle } from "../components/ui/DarkModeToggle.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { motion } from "framer-motion";
 
-// No pre-filled tenants needed
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -35,90 +45,130 @@ function Login() {
       if (user) localStorage.setItem("user", JSON.stringify(user));
       if (tenant?.theme) persistTheme(tenant.theme);
 
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.response?.data?.message || "Login failed. Check your credentials.");
       console.error("Login error:", err);
+      const errorMsg = err.response?.data?.error?.message || 
+                       err.response?.data?.message || 
+                       err.message || 
+                       "Login failed. Check your credentials.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.05fr,1fr] lg:p-12">
-      <section className="space-y-6">
-        <img src="/logo.png" alt="PropConnect" className="h-[80px] w-auto object-contain" />
-        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
-          Welcome back
-        </span>
-        <h1 className="text-3xl font-semibold text-[color:var(--color-primary)] sm:text-4xl">
-          Welcome back!
-        </h1>
-        <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-          Sign in to your account to pick up where you left off.
-        </p>
-      </section>
+    <div className="min-h-screen auth-bg text-on-surface">
+      <div className="absolute top-6 right-6 z-10">
+        <DarkModeToggle />
+      </div>
 
-      <form
-        className="flex w-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-inner"
-        onSubmit={handleSubmit}
-      >
-        <div>
-          <h2 className="text-xl font-semibold text-[color:var(--color-primary)]">Log in</h2>
-          <p className="text-sm text-[color:var(--color-muted)]">
-            Need an account?{" "}
-            <Link to="/register" className="font-medium text-[color:var(--color-accent)]">
-              Create one
-            </Link>
-          </p>
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12">
+        <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-[1.1fr,0.9fr]">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="hidden lg:flex flex-col justify-between rounded-3xl bg-surface-container-lowest/70 p-10 shadow-ambient signal-surface"
+          >
+            <div>
+              <img src="/logo.png" alt="PropConnect" className="h-12 w-auto" />
+              <h1 className="mt-6 text-3xl font-semibold font-headline text-on-surface">
+                Welcome back
+              </h1>
+              <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
+                Manage properties, renters, and invoices with a clear, modern dashboard.
+              </p>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="space-y-3"
+            >
+              {[
+                { icon: "🏠", text: "Portfolio management" },
+                { icon: "📊", text: "Real-time analytics" },
+                { icon: "💳", text: "Automated invoicing" },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-3 rounded-xl border border-outline-variant/50 bg-surface-container-lowest/70 px-4 py-3">
+                  <span className="text-lg">{item.icon}</span>
+                  <p className="text-sm font-medium text-on-surface">{item.text}</p>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="glass-card rounded-3xl px-6 py-10 sm:px-10"
+          >
+            <motion.div variants={stagger} initial="hidden" animate="visible">
+              <motion.div variants={fadeUp} className="mb-8">
+                <img src="/logo.png" alt="PropConnect" className="h-10 w-auto" />
+                <h2 className="mt-4 text-2xl font-semibold font-headline text-on-surface">Sign in</h2>
+                <p className="mt-2 text-sm text-on-surface-variant">Use your account credentials to continue.</p>
+              </motion.div>
+
+              {error && (
+                <motion.div variants={fadeUp} className="mb-6 rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm text-on-error-container">
+                  {error}
+                </motion.div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                  <span className="font-medium text-on-surface">Email</span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@company.com"
+                    className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
+                </motion.label>
+
+                <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-on-surface">Password</span>
+                    <Link to="/forgot-password" className="text-xs font-semibold text-primary hover:opacity-80">
+                      Forgot?
+                    </Link>
+                  </div>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
+                </motion.label>
+
+                <motion.div variants={fadeUp}>
+                  <Button type="submit" loading={loading} className="w-full">
+                    {loading ? "Signing in..." : "Sign in"}
+                  </Button>
+                </motion.div>
+              </form>
+
+              <motion.p variants={fadeUp} className="mt-6 text-center text-sm text-on-surface-variant">
+                Need an account?{" "}
+                <Link to="/register" className="font-semibold text-primary hover:opacity-80">
+                  Create one
+                </Link>
+              </motion.p>
+            </motion.div>
+          </motion.div>
         </div>
-
-        {error && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            {error}
-          </p>
-        )}
-
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Email</span>
-          <input
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="you@company.com"
-            required
-          />
-        </label>
-
-        <label className="space-y-1 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-[color:var(--color-text)]">Password</span>
-            <Link to="/forgot-password" className="text-xs font-semibold text-[color:var(--color-accent)] hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          <input
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="******"
-            required
-          />
-        </label>
-
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 rounded-xl bg-[color:var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? "Signing you in..." : "Access dashboard"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

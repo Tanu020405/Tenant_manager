@@ -30,11 +30,23 @@ const createContext = ({ params = {}, headers = {}, query = {}, user = null } = 
   };
 
   let nextCalled = false;
-  const next = () => {
+  let nextError = null;
+  const next = (err) => {
     nextCalled = true;
+    nextError = err || null;
   };
 
-  return { req, res, next, get nextCalled() { return nextCalled; } };
+  return {
+    req,
+    res,
+    next,
+    get nextCalled() {
+      return nextCalled;
+    },
+    get nextError() {
+      return nextError;
+    },
+  };
 };
 
 describe("tenantResolver middleware", () => {
@@ -108,8 +120,7 @@ describe("tenantResolver middleware", () => {
 
     tenantResolver(ctx.req, ctx.res, ctx.next);
 
-    assert.equal(ctx.nextCalled, false);
-    assert.equal(ctx.res.statusCode, 403);
-    assert.equal(ctx.res.body.message, "Tenant mismatch for authenticated user");
+    assert.equal(ctx.nextCalled, true);
+    assert.equal(ctx.nextError?.message, "Tenant mismatch for authenticated user");
   });
 });

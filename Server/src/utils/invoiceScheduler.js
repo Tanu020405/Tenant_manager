@@ -12,6 +12,7 @@
 
 import Invoice from "../models/invoiceModel.js";
 import Property from "../models/propertyModel.js";
+import Renter from "../models/renterModel.js";
 import { sendMail } from "./mailer.js";
 import { overdueReminderEmail, invoiceGeneratedEmail } from "./emailTemplates.js";
 
@@ -36,7 +37,8 @@ export const markOverdueInvoices = async () => {
             // Fire-and-forget overdue reminder
             if (invoice.renter?.email) {
                 const emailData = overdueReminderEmail(invoice, invoice.renter);
-                sendMail({ to: invoice.renter.email, ...emailData });
+                sendMail({ to: invoice.renter.email, ...emailData })
+                    .catch((mailErr) => console.error("[Scheduler] Overdue email failed:", mailErr.message));
             }
         }
 
@@ -58,19 +60,19 @@ export const generateMonthlyInvoices = async () => {
     console.log(`[Scheduler] Generating invoices for period: ${period}`);
 
     try {
-        const occupiedProperties = await Property.find({
-            available: false,
-            currentRenter: { $exists: true, $ne: null },
+        const activeRenters = await Renter.find({
             isDeleted: false,
-        }).populate("currentRenter");
+            active: true,
+            property: { $exists: true, $ne: null },
+        }).populate("property");
 
         let created = 0;
         let skipped = 0;
 
-        for (const property of occupiedProperties) {
-            const renter = property.currentRenter;
+        for (const renter of activeRenters) {
+            const property = renter.property;
 
-            if (!renter || renter.isDeleted || !renter.active) {
+            if (!property || property.isDeleted || property.tenantId !== renter.tenantId) {
                 skipped++;
                 continue;
             }
@@ -107,7 +109,13 @@ export const generateMonthlyInvoices = async () => {
             // Fire-and-forget — email renter about auto-generated invoice
             if (renter.email) {
                 const emailData = invoiceGeneratedEmail(invoice, renter);
-                sendMail({ to: renter.email, ...emailData });
+                sendMail({ to: renter.email, ...emailData })
+                    .catch((mailErr) => console.error("[Scheduler] Invoice email failed:", mailErr.message));
+            }
+
+            // Keep property occupancy fields synchronized for dashboard visibility.
+            if (property.currentRenter?.toString() !== renter._id.toString() || property.available) {
+                await Property.findByIdAndUpdate(property._id, { currentRenter: renter._id, available: false });
             }
         }
 

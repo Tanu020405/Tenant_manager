@@ -17,8 +17,18 @@ const paymentSchema = new mongoose.Schema(
 );
 
 paymentSchema.index({ tenantId: 1, renterId: 1 });
-paymentSchema.index({ invoiceId: 1 }, { unique: true });    // one payment per invoice
-paymentSchema.index({ transactionId: 1 }, { unique: true }); // one record per razorpay payment_id
+paymentSchema.index(
+    { invoiceId: 1 },
+    { unique: true, partialFilterExpression: { isDeleted: false } }
+); // one active payment per invoice
+paymentSchema.index(
+    { transactionId: 1 },
+    { unique: true, partialFilterExpression: { isDeleted: false } }
+); // one active record per razorpay payment_id
+paymentSchema.index(
+    { orderId: 1 },
+    { unique: true, partialFilterExpression: { isDeleted: false } }
+); // one active record per razorpay order_id
 
 const Payment = mongoose.model("Payment", paymentSchema);
 export default Payment;

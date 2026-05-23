@@ -16,7 +16,10 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-propertySchema.index({ tenantId: 1, name: 1 }, { unique: true });
+propertySchema.index(
+  { tenantId: 1, name: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } }
+);
 
 const Property = mongoose.model("Property", propertySchema);
 export default Property;

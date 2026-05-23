@@ -8,51 +8,13 @@ import { sendMail } from "../utils/mailer.js";
 
 dotenv.config();
 
-const defaultTenantThemes = {
-  t1: {
-    name: "Acme HQ",
-    theme: {
-      primary: "#1f2937",
-      accent: "#2563eb",
-      background: "#f5f5f4",
-      surface: "#ffffff",
-      text: "#0f172a",
-      muted: "#4b5563",
-    },
-  },
-  t2: {
-    name: "Northwind Ops",
-    theme: {
-      primary: "#14532d",
-      accent: "#0ea5e9",
-      background: "#f8fafc",
-      surface: "#ffffff",
-      text: "#082f49",
-      muted: "#64748b",
-    },
-  },
-  t3: {
-    name: "Globex Labs",
-    theme: {
-      primary: "#1e1b4b",
-      accent: "#f59e0b",
-      background: "#f9fafb",
-      surface: "#ffffff",
-      text: "#111827",
-      muted: "#6b7280",
-    },
-  },
-  default: {
-    name: "Community Tenant",
-    theme: {
-      primary: "#1f2937",
-      accent: "#2563eb",
-      background: "#f8fafc",
-      surface: "#ffffff",
-      text: "#111827",
-      muted: "#6b7280",
-    },
-  },
+const defaultTenantTheme = {
+  primary: "#1f2937",
+  accent: "#2563eb",
+  background: "#f8fafc",
+  surface: "#ffffff",
+  text: "#111827",
+  muted: "#6b7280",
 };
 
 const generateToken = (user) =>
@@ -60,46 +22,100 @@ const generateToken = (user) =>
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 
-const ensureTenant = async (tenantId) => {
-  const existing = await Tenant.findOne({ tenantId, isDeleted: false });
-  if (existing) return existing;
+const slugify = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
 
-  const fallback = defaultTenantThemes[tenantId] || defaultTenantThemes.default;
-  return Tenant.create({
-    tenantId,
-    name: fallback.name,
-    theme: fallback.theme,
-  });
+const generateTenantCandidates = (name, email) => {
+  const emailLocal = String(email || "").split("@")[0];
+  const base = slugify(name) || slugify(emailLocal) || "tenant";
+  return [
+    base,
+    `${base}-hub`,
+    `${base}-${Math.random().toString(36).slice(2, 6)}`,
+    `${base}-${Date.now().toString(36).slice(-5)}`,
+  ];
+};
+
+const createTenantForUser = async ({ name, email }) => {
+  const tenantName = String(name || "").trim() || "My Organization";
+  const candidates = generateTenantCandidates(name, email);
+
+  for (const candidate of candidates) {
+    const existing = await Tenant.findOne({ tenantId: candidate, isDeleted: false });
+    if (existing) continue;
+    return Tenant.create({
+      tenantId: candidate,
+      name: tenantName,
+      theme: defaultTenantTheme,
+    });
+  }
+
+  throw new ConflictError("Unable to provision organization. Please try again.");
 };
 
 const sanitizeUser = (userDoc) => {
   const userObject = userDoc.toObject();
   delete userObject.password;
+  delete userObject.resetPasswordToken;
+  delete userObject.resetPasswordExpires;
   return userObject;
+};
+
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const getClientBaseUrl = () => process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+
+const isBcryptHash = (value) => /^\$2[abxy]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(String(value || ""));
+
+const isLegacyPlaintextPasswordMatch = (storedPassword, candidatePassword) => {
+  const stored = String(storedPassword || "");
+  const candidate = String(candidatePassword || "");
+
+  if (!stored || !candidate || stored.length !== candidate.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(candidate));
 };
 
 export const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, tenantId, role } = req.body;
-
-    if (!tenantId) {
-      throw new ValidationError("tenantId is required");
-    }
+    const { name, email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
     if (!name || !email || !password) {
       throw new ValidationError("name, email, and password are required");
     }
 
-    const tenant = await ensureTenant(tenantId);
-    const existingUser = await User.findOne({ email, tenantId, isDeleted: false });
-    if (existingUser) {
-      throw new ConflictError("User already exists for this tenant");
+    if (String(password).length < 8) {
+      throw new ValidationError("Password must be at least 8 characters");
     }
 
-    // Allow explicit role assignment: superAdmin, tenant, or renter. Default to "tenant".
-    const validRoles = ["superAdmin", "tenant", "renter"];
-    const userRole = validRoles.includes(role) ? role : "tenant";
-    const newUser = await User.create({ name, email, password, tenantId: tenant.tenantId, role: userRole });
+    if (req.body.role && req.body.role !== "tenant") {
+      throw new ValidationError("Public registration only supports tenant accounts");
+    }
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+      isDeleted: false,
+    });
+    if (existingUser) {
+      throw new ConflictError("User already exists for this email");
+    }
+
+    const tenant = await createTenantForUser({ name, email: normalizedEmail });
+
+    const newUser = await User.create({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password,
+      tenantId: tenant.tenantId,
+      role: "tenant",
+    });
     const token = generateToken(newUser);
 
     res.status(201).json({ success: true, data: { user: sanitizeUser(newUser), tenant, token } });
@@ -111,17 +127,38 @@ export const registerUser = async (req, res, next) => {
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       throw new ValidationError("email and password are required");
     }
 
-    const user = await User.findOne({ email, isDeleted: false });
-    if (!user || user.password !== password) {
+    const user = await User.findOne({
+      email: normalizedEmail,
+      isDeleted: false,
+    });
+
+    let passwordMatched = false;
+
+    if (user) {
+      if (isBcryptHash(user.password)) {
+        passwordMatched = await user.comparePassword(password);
+      } else {
+        passwordMatched = isLegacyPlaintextPasswordMatch(user.password, password);
+        if (passwordMatched) {
+          // One-time migration path for legacy plaintext records.
+          user.password = password;
+          user.markModified("password");
+          await user.save();
+        }
+      }
+    }
+
+    if (!user || !passwordMatched) {
       throw new ValidationError("Invalid credentials");
     }
 
-    const tenant = await ensureTenant(user.tenantId);
+    const tenant = await Tenant.findOne({ tenantId: user.tenantId, isDeleted: false });
     const token = generateToken(user);
     res.status(200).json({ success: true, data: { user: sanitizeUser(user), tenant, token } });
   } catch (err) {
@@ -132,20 +169,25 @@ export const loginUser = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    if (!email) throw new ValidationError("Email is required");
+    const normalizedEmail = normalizeEmail(email);
 
-    const user = await User.findOne({ email, isDeleted: false });
+    if (!normalizedEmail) {
+      throw new ValidationError("Email is required");
+    }
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+      isDeleted: false,
+    });
+
     if (!user) {
       return res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hr
-    await user.save();
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
 
-    const origin = req.headers.origin || "http://localhost:5173";
-    const resetUrl = `${origin}/reset-password/${resetToken}`;
+    const resetUrl = `${getClientBaseUrl()}/reset-password/${resetToken}`;
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -156,9 +198,8 @@ export const forgotPassword = async (req, res, next) => {
       </div>
     `;
 
-    // Fire & forget
     sendMail({ to: user.email, subject: "Password Reset Request", html })
-      .catch(err => console.error("[Auth] Forgot password email failed:", err));
+      .catch(err => console.error(`[Auth] ❌ Forgot password email failed for ${user.email}:`, err.message));
 
     res.status(200).json({ success: true, message: "If that email exists, a reset link has been sent." });
   } catch (err) {
@@ -171,10 +212,17 @@ export const resetPassword = async (req, res, next) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    if (!password) throw new ValidationError("New password is required");
+    if (!password) {
+      throw new ValidationError("New password is required");
+    }
+    if (String(password).length < 8) {
+      throw new ValidationError("Password must be at least 8 characters");
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() },
       isDeleted: false
     });

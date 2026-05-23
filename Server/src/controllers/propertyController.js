@@ -1,6 +1,26 @@
 import Property from "../models/propertyModel.js";
 import { NotFoundError, ValidationError } from "../middlewares/errorHandler.js";
 
+const sanitizePropertyPayload = (payload) => {
+  const sanitized = {};
+  const allowedFields = ["name", "address", "rent", "available", "description", "features", "currentRenter"];
+
+  for (const field of allowedFields) {
+    if (payload[field] !== undefined) {
+      sanitized[field] = payload[field];
+    }
+  }
+
+  if (sanitized.name !== undefined) sanitized.name = String(sanitized.name).trim();
+  if (sanitized.address !== undefined) sanitized.address = String(sanitized.address).trim();
+  if (sanitized.rent !== undefined) sanitized.rent = Number(sanitized.rent);
+  if (sanitized.features !== undefined && !Array.isArray(sanitized.features)) {
+    throw new ValidationError("features must be an array");
+  }
+
+  return sanitized;
+};
+
 // Get all properties (with filtering, pagination, sorting)
 export const getProperties = async (req, res, next) => {
   try {
@@ -38,13 +58,14 @@ export const getProperty = async (req, res, next) => {
 // Create property
 export const createProperty = async (req, res, next) => {
   try {
-    const { name, address, rent } = req.body;
+    const payload = sanitizePropertyPayload(req.body);
+    const { name, address, rent } = payload;
 
-    if (!name || !address || !rent) {
+    if (!name || !address || !Number.isFinite(rent) || rent <= 0) {
       throw new ValidationError("Name, address, and rent are required");
     }
 
-    const property = await Property.create({ ...req.body, tenantId: req.tenantId });
+    const property = await Property.create({ ...payload, tenantId: req.tenantId });
     res.status(201).json({ success: true, data: property });
   } catch (err) {
     next(err);
@@ -54,9 +75,14 @@ export const createProperty = async (req, res, next) => {
 // Update property
 export const updateProperty = async (req, res, next) => {
   try {
+    const payload = sanitizePropertyPayload(req.body);
+    if (!Object.keys(payload).length) {
+      throw new ValidationError("At least one editable field is required");
+    }
+
     const property = await Property.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenantId, isDeleted: false },
-      req.body,
+      payload,
       { new: true }
     );
     if (!property) {

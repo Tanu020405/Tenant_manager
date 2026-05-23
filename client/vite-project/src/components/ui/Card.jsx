@@ -1,19 +1,23 @@
-export const Card = ({ children, className = "" }) => (
-    <div className={`rounded-2xl border border-slate-200/70 bg-[color:var(--color-surface)] shadow-sm ${className}`}>
+export const Card = ({ children, className = "", glass = true }) => (
+    <div
+        className={`rounded-2xl ${glass
+            ? "glass-panel ghost-border p-6"
+            : "border border-outline-variant bg-surface-container-lowest shadow-ambient"} hover:-translate-y-0.5 transition-all duration-300 ${className}`}
+    >
         {children}
     </div>
 );
 
 export const CardHeader = ({ title, subtitle, action }) => (
-    <div className="flex items-start justify-between gap-4 p-6 pb-0">
+    <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-            <h2 className="text-lg font-semibold text-[color:var(--color-primary)]">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-sm text-[color:var(--color-muted)]">{subtitle}</p>}
+            <h2 className="text-xl font-semibold font-headline text-on-surface">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-on-surface-variant">{subtitle}</p>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
     </div>
 );
 
 export const CardBody = ({ children, className = "" }) => (
-    <div className={`p-6 ${className}`}>{children}</div>
+    <div className={`${className}`}>{children}</div>
 );

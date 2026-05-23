@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -6,8 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Asset paths
 const LOGO_PATH = path.join(__dirname, "../assets/logo.png");
-const FONT_REGULAR = "Helvetica";
-const FONT_BOLD = "Helvetica-Bold";
+const FONT_REGULAR_PATH = path.join(__dirname, "../assets/fonts/NotoSans-Regular.ttf");
+const FONT_BOLD_PATH = path.join(__dirname, "../assets/fonts/NotoSans-Bold.ttf");
+const FONT_REGULAR = fs.existsSync(FONT_REGULAR_PATH) ? "NotoSans" : "Helvetica";
+const FONT_BOLD = fs.existsSync(FONT_BOLD_PATH) ? "NotoSans-Bold" : "Helvetica-Bold";
 
 // Colors — match sample (gold accent, dark navy text)
 const ACCENT = "#2563eb";       // brand blue for header/total row
@@ -68,7 +71,13 @@ export function buildInvoicePdf(doc, invoice) {
     const CW = W - M * 2;            // content width = 495
 
     // ── Fonts ──────────────────────────────────────────────────────
-    // Using standard PDFKit fonts (no registration needed)
+    // Prefer Unicode-capable fonts when present; fallback to standard fonts.
+    if (FONT_REGULAR === "NotoSans") {
+        doc.registerFont("NotoSans", FONT_REGULAR_PATH);
+    }
+    if (FONT_BOLD === "NotoSans-Bold") {
+        doc.registerFont("NotoSans-Bold", FONT_BOLD_PATH);
+    }
 
     // ── TOP: Logo (right) + Company name (left) ─────────────────────────────
     let y = M;

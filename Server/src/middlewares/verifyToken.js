@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { UnauthorizedError, ForbiddenError } from "./errorHandler.js";
+import { UnauthorizedError } from "./errorHandler.js";
 
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -14,6 +14,6 @@ export const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return next(new ForbiddenError("Invalid token"));
+    return next(new UnauthorizedError("Invalid or expired token"));
   }
 };

@@ -50,7 +50,7 @@ function App() {
         <Route path="/" element={<RoleHome />} />
 
         {/* Tenant — authenticated layout */}
-        <Route element={<AppShell requiredRole="tenant" />}>
+        <Route element={<AppShell requiredRole={["tenant", "superAdmin"]} />}>
           <Route path="/properties" element={<PropertiesPage />} />
           <Route path="/renters" element={<RentersPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />

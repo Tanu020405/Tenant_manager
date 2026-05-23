@@ -40,10 +40,9 @@ const Dashboard = () => {
     setIsFetching(true);
 
     try {
-      const response = await axios.get(postsRoute(storedUser.tenantId), {
+      const response = await axios.get(postsRoute(), {
         headers: {
           Authorization: `Bearer ${token}`,
-          "x-tenant-id": storedUser.tenantId,
         },
       });
 
@@ -77,10 +76,9 @@ const Dashboard = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(postsRoute(storedUser.tenantId), formData, {
+      const response = await axios.post(postsRoute(), formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "x-tenant-id": storedUser.tenantId,
         },
       });
 
@@ -100,10 +98,9 @@ const Dashboard = () => {
     if (!window.confirm("Remove this update?")) return;
 
     try {
-      await axios.delete(`${postsRoute(storedUser.tenantId)}/${id}`, {
+      await axios.delete(`${postsRoute()}/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "x-tenant-id": storedUser.tenantId,
         },
       });
 
@@ -125,15 +122,14 @@ const Dashboard = () => {
               {activeUser ? `Hello ${activeUser.name || "there"}!` : "Welcome back"}
             </h1>
             <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-              Publish small updates for your tenant and keep everything scoped to{" "}
-              <strong>{activeUser?.tenantId || "your workspace"}</strong>.
+              Publish small updates for your organization in one shared feed.
             </p>
           </div>
           <div className="grid gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-[color:var(--color-text)]">
             <div className="flex items-center justify-between gap-6">
-              <span className="text-[color:var(--color-muted)]">Workspace</span>
+              <span className="text-[color:var(--color-muted)]">Organization</span>
               <span className="font-semibold text-[color:var(--color-primary)]">
-                {activeUser?.tenantId || "unknown workspace"}
+                {activeUser?.tenant?.name || "PropConnect"}
               </span>
             </div>
             <div className="flex items-center justify-between gap-6">

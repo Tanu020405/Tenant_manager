@@ -44,7 +44,7 @@ export const generateInvoice = async (req, res, next) => {
     const email = invoiceGeneratedEmail(invoiceObj, renter);
     generateInvoicePdfBuffer(invoiceObj)
       .then((pdfBuffer) => {
-        sendMail({
+        return sendMail({
           to: renter.email,
           ...email,
           attachments: [{
@@ -54,7 +54,7 @@ export const generateInvoice = async (req, res, next) => {
           }],
         });
       })
-      .catch((err) => console.error("[Mail] PDF generation for attachment failed:", err.message));
+      .catch((err) => console.error("[Mail] Invoice email failed:", err.message));
   } catch (err) {
     next(err);
   }

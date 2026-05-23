@@ -3,15 +3,24 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { persistTheme } from "../utils/theme.js";
 import { authRoutes } from "../utils/api.js";
+import { DarkModeToggle } from "../components/ui/DarkModeToggle.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { motion } from "framer-motion";
 
-// No pre-filled tenants needed
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
 
 function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    tenantId: "",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: null, text: "" });
@@ -34,13 +43,12 @@ function Register() {
       }
       setMessage({
         type: "success",
-        text: `Workspace ready for ${tenant?.name || formData.tenantId}. You can log in now.`,
+        text: `Account ready for ${tenant?.name || formData.name}. You can log in now.`,
       });
       setFormData({
         name: "",
         email: "",
         password: "",
-        tenantId: "",
       });
     } catch (err) {
       console.error(err);
@@ -54,131 +62,129 @@ function Register() {
   };
 
   return (
-    <div className="grid gap-10 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80 lg:grid-cols-[1.05fr,1fr] lg:p-12">
-      <section className="space-y-6">
-        <img src="/logo.png" alt="PropConnect" className="h-[80px] w-auto object-contain" />
-        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--color-muted)]">
-          Rental SaaS Platform
-        </span>
-        <h1 className="text-3xl font-semibold text-[color:var(--color-primary)] sm:text-4xl">
-          Automate your property management today.
-        </h1>
-        <p className="text-sm text-[color:var(--color-muted)] sm:text-base">
-          Join landlords who use our platform to handle rent collection, track properties, and monitor financial health with ease. Provide a unique workspace ID below to get started.
-        </p>
-        <dl className="grid gap-4 text-sm text-[color:var(--color-text)] sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
-              <span className="text-lg">🏢</span> Properties
-            </dt>
-            <dd className="mt-1 font-medium">Centralize buildings and renters</dd>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
-              <span className="text-lg">🧾</span> Invoicing
-            </dt>
-            <dd className="mt-1 font-medium">1-click automated rent billing</dd>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
-              <span className="text-lg">💳</span> Payments
-            </dt>
-            <dd className="mt-1 font-medium">Secure online rent collection</dd>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <dt className="text-xs uppercase tracking-[0.2em] text-[color:var(--color-muted)] flex items-center gap-2">
-              <span className="text-lg">📊</span> Analytics
-            </dt>
-            <dd className="mt-1 font-medium">Track revenue and overdue dues</dd>
-          </div>
-        </dl>
-      </section>
+    <div className="min-h-screen auth-bg text-on-surface">
+      <div className="absolute top-6 right-6 z-10">
+        <DarkModeToggle />
+      </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-inner"
-      >
-        <div>
-          <h2 className="text-xl font-semibold text-[color:var(--color-primary)]">Register</h2>
-          <p className="text-sm text-[color:var(--color-muted)]">
-            Already have an account?{" "}
-            <Link to="/login" className="font-medium text-[color:var(--color-accent)]">
-              Log in
-            </Link>
-          </p>
-        </div>
-
-        {message.text && (
-          <p
-            className={`rounded-xl border px-3 py-2 text-sm ${message.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-              }`}
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12">
+        <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-[0.9fr,1.1fr]">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="glass-card rounded-3xl px-6 py-10 sm:px-10"
           >
-            {message.text}
-          </p>
-        )}
+            <motion.div variants={stagger} initial="hidden" animate="visible">
+              <motion.div variants={fadeUp} className="mb-8">
+                <img src="/logo.png" alt="PropConnect" className="h-10 w-auto" />
+                <h2 className="mt-4 text-2xl font-semibold font-headline text-on-surface">Create account</h2>
+                <p className="mt-2 text-sm text-on-surface-variant">Set up your account and invite renters.</p>
+              </motion.div>
 
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Full name</span>
-          <input
-            type="text"
-            name="name"
-            placeholder="Taylor Jenkins"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            required
-          />
-        </label>
+              {message.text && (
+                <motion.div variants={fadeUp} className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+                  message.type === "success"
+                    ? "border-primary/20 bg-primary/10 text-primary"
+                    : "border-error/20 bg-error-container/40 text-on-error-container"
+                }`}>
+                  {message.text}
+                </motion.div>
+              )}
 
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Email</span>
-          <input
-            type="email"
-            name="email"
-            placeholder="you@company.com"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            required
-          />
-        </label>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                  <span className="font-medium text-on-surface">Full name</span>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="John Doe"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
+                </motion.label>
 
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Password</span>
-          <input
-            type="password"
-            name="password"
-            placeholder="At least 6 characters"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            required
-          />
-        </label>
+                <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                  <span className="font-medium text-on-surface">Email</span>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="you@company.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    required
+                  />
+                </motion.label>
 
-        <label className="space-y-1 text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Workspace ID</span>
-          <input
-            type="text"
-            name="tenantId"
-            placeholder="e.g. acme-corp-123"
-            value={formData.tenantId}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            required
-          />
-        </label>
+                <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                  <span className="font-medium text-on-surface">Password</span>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="At least 8 characters"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    minLength={8}
+                    required
+                  />
+                </motion.label>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-2 rounded-xl bg-[color:var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? "Creating workspace..." : "Create workspace"}
-        </button>
-      </form>
+                <motion.div variants={fadeUp}>
+                  <Button type="submit" loading={loading} className="w-full">
+                    {loading ? "Creating..." : "Create account"}
+                  </Button>
+                </motion.div>
+              </form>
+
+              <motion.p variants={fadeUp} className="mt-6 text-center text-sm text-on-surface-variant">
+                Already have an account?{" "}
+                <Link to="/login" className="font-semibold text-primary hover:opacity-80">
+                  Log in
+                </Link>
+              </motion.p>
+            </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="hidden lg:flex flex-col justify-between rounded-3xl bg-surface-container-lowest/70 p-10 shadow-ambient signal-surface"
+          >
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-on-surface-variant">Account setup</p>
+              <h1 className="mt-4 text-3xl font-semibold font-headline text-on-surface">
+                Launch your PropConnect account
+              </h1>
+              <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
+                Invite renters, organize properties, and track billing in a single interface.
+              </p>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="space-y-3"
+            >
+              {[
+                { icon: "🔒", text: "Bank-grade security" },
+                { icon: "🎨", text: "Custom branding & themes" },
+                { icon: "📧", text: "Automated email notifications" },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-3 rounded-xl border border-outline-variant/50 bg-surface-container-lowest/70 px-4 py-3">
+                  <span className="text-lg">{item.icon}</span>
+                  <p className="text-sm font-medium text-on-surface">{item.text}</p>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 }

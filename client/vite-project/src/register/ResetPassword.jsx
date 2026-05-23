@@ -2,6 +2,14 @@ import { useState } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
 import { authRoutes } from "../utils/api.js";
+import { DarkModeToggle } from "../components/ui/DarkModeToggle.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
 
 function ResetPassword() {
   const { token } = useParams();
@@ -12,6 +20,10 @@ function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (password.length < 8) {
+      return setMessage({ type: "error", text: "Password must be at least 8 characters." });
+    }
     
     if (password !== confirmPassword) {
       return setMessage({ type: "error", text: "Passwords do not match." });
@@ -36,65 +48,92 @@ function ResetPassword() {
   };
 
   return (
-    <div className="mx-auto mt-20 max-w-md space-y-8 rounded-3xl border border-slate-200/70 bg-[color:var(--color-surface)] p-8 shadow-sm shadow-slate-200/80">
-      <div className="text-center">
-        <img src="/logo.png" alt="PropConnect" className="mx-auto h-[80px] w-auto object-contain" />
-        <h2 className="mt-6 text-3xl font-bold text-[color:var(--color-primary)]">Enter new password</h2>
-        <p className="mt-2 text-sm text-[color:var(--color-muted)]">
-          Please secure your account by choosing a strong, new password.
-        </p>
+    <div className="min-h-screen auth-bg text-on-surface">
+      <div className="absolute top-6 right-6 z-10">
+        <DarkModeToggle />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-6 flex flex-col gap-2">
-        {message.text && (
-          <p className={`rounded-xl border px-3 py-2 text-sm ${
-            message.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-rose-200 bg-rose-50 text-rose-700"
-          }`}>
-            {message.text}
-          </p>
-        )}
-
-        <label className="space-y-1 block text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">New Password</span>
-          <input
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
-            required
-          />
-        </label>
-        
-        <label className="space-y-1 block text-sm">
-          <span className="font-medium text-[color:var(--color-text)]">Confirm Password</span>
-          <input
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-[color:var(--color-text)] focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/30"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-type your new password"
-            required
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading || !password || !confirmPassword || message.type === "success"}
-          className="w-full rounded-xl bg-[color:var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+      <div className="mx-auto flex min-h-screen w-full max-w-lg items-center px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="w-full glass-card rounded-3xl px-6 py-10 sm:px-10"
         >
-          {loading ? "Resetting..." : "Reset Password"}
-        </button>
-
-        {message.type === "success" && (
-          <Link
-            to="/login"
-            className="mt-4 block text-center w-full rounded-xl border border-[color:var(--color-accent)] py-3 text-sm font-semibold text-[color:var(--color-accent)] transition hover:bg-[color:var(--color-accent)] hover:text-white"
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
           >
-            Go to Login
-          </Link>
-        )}
-      </form>
+            <motion.div variants={fadeUp} className="text-center">
+              <img src="/logo.png" alt="PropConnect" className="mx-auto h-12 w-auto object-contain" />
+              <h2 className="mt-6 text-2xl font-semibold font-headline text-on-surface">Enter new password</h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                Secure your account by choosing a strong, new password.
+              </p>
+            </motion.div>
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              {message.text && (
+                <motion.p variants={fadeUp} className={`rounded-xl border px-4 py-3 text-sm ${
+                  message.type === "success"
+                    ? "border-primary/20 bg-primary/10 text-primary"
+                    : "border-error/20 bg-error-container/40 text-on-error-container"
+                }`}>
+                  {message.text}
+                </motion.p>
+              )}
+
+              <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                <span className="font-medium text-on-surface">New Password</span>
+                <input
+                  className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  minLength={8}
+                  required
+                />
+              </motion.label>
+              
+              <motion.label variants={fadeUp} className="block space-y-2 text-sm">
+                <span className="font-medium text-on-surface">Confirm Password</span>
+                <input
+                  className="w-full rounded-xl ghost-border bg-surface-container-lowest/80 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-type your new password"
+                  required
+                />
+              </motion.label>
+
+              <motion.div variants={fadeUp}>
+                <Button
+                  type="submit"
+                  loading={loading}
+                  className="w-full"
+                  disabled={!password || !confirmPassword || message.type === "success"}
+                >
+                  {loading ? "Resetting..." : "Reset Password"}
+                </Button>
+              </motion.div>
+
+              {message.type === "success" && (
+                <motion.div variants={fadeUp}>
+                  <Link
+                    to="/login"
+                    className="mt-2 block text-center w-full rounded-xl border border-primary/30 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-on-primary"
+                  >
+                    Go to Login
+                  </Link>
+                </motion.div>
+              )}
+            </form>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

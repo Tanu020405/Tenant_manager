@@ -9,8 +9,6 @@ import Payment from "../models/paymentModel.js";
 export const getRevenue = async (req, res, next) => {
     try {
         const { period } = req.query;
-        const matchStage = { tenantId: req.tenantId, isDeleted: false, status: "success" };
-        if (period) matchStage["invoiceId.period"] = period;
 
         // Aggregate on Payment collection — actual money received
         const pipeline = [

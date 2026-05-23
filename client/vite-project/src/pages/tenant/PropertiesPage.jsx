@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth.js";
 import { useApi } from "../../hooks/useApi.js";
 import { propertiesRoute, propertyRoute } from "../../utils/api.js";
-import { Card, CardHeader, CardBody } from "../../components/ui/Card.jsx";
+import { Card, CardBody } from "../../components/ui/Card.jsx";
 import { Button } from "../../components/ui/Button.jsx";
 import { Badge } from "../../components/ui/Badge.jsx";
 import { Modal } from "../../components/ui/Modal.jsx";
 import { PageSpinner } from "../../components/ui/Spinner.jsx";
 import { EmptyState } from "../../components/ui/EmptyState.jsx";
+import { motion } from "framer-motion";
 
 const emptyForm = { name: "", address: "", rent: "", description: "" };
 
@@ -60,40 +61,53 @@ const PropertiesPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-[color:var(--color-primary)]">Properties</h1>
-                    <p className="text-sm text-[color:var(--color-muted)]">Manage your rental properties</p>
+                    <h1 className="text-2xl font-semibold text-on-surface font-headline">Properties</h1>
+                    <p className="text-sm text-on-surface-variant mt-1">Manage your rental portfolio and occupancy.</p>
                 </div>
                 <Button onClick={openAdd}>+ Add Property</Button>
             </div>
 
-            {error && <p className="rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-600">{error}</p>}
+            {error && <p className="rounded-xl border border-error/20 bg-error-container/40 px-4 py-2.5 text-sm text-on-error-container">{error}</p>}
 
             {loading ? <PageSpinner /> : properties.length === 0 ? (
                 <EmptyState icon="🏠" title="No properties yet" description="Add your first property to get started." action={<Button onClick={openAdd}>+ Add Property</Button>} />
             ) : (
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <motion.div
+                    className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                    initial="hidden"
+                    animate="visible"
+                    variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+                >
                     {properties.map((p) => (
-                        <Card key={p._id}>
-                            <CardBody>
-                                <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                        <p className="truncate font-semibold text-[color:var(--color-primary)]">{p.name}</p>
-                                        <p className="mt-0.5 truncate text-xs text-[color:var(--color-muted)]">{p.address}</p>
+                        <motion.div
+                            key={p._id}
+                            variants={{
+                                hidden: { opacity: 0, y: 16 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } }
+                            }}
+                        >
+                            <Card>
+                                <CardBody>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-on-surface">{p.name}</p>
+                                            <p className="mt-0.5 truncate text-xs text-on-surface-variant">{p.address}</p>
+                                        </div>
+                                        <Badge label={p.available ? "available" : "occupied"} />
                                     </div>
-                                    <Badge label={p.available ? "available" : "occupied"} />
-                                </div>
-                                <p className="mt-3 text-xl font-bold text-[color:var(--color-accent)]">₹{p.rent?.toLocaleString()}<span className="text-xs font-normal text-[color:var(--color-muted)]">/mo</span></p>
-                                {p.description && <p className="mt-2 text-xs text-[color:var(--color-muted)] line-clamp-2">{p.description}</p>}
-                                <div className="mt-4 flex gap-2">
-                                    <Button variant="ghost" className="flex-1 text-xs" onClick={() => openEdit(p)}>Edit</Button>
-                                    <Button variant="danger" className="flex-1 text-xs" onClick={() => handleDelete(p._id)}>Delete</Button>
-                                </div>
-                            </CardBody>
-                        </Card>
+                                    <p className="mt-3 text-2xl font-bold text-primary">₹{p.rent?.toLocaleString()}<span className="text-xs font-normal text-on-surface-variant">/mo</span></p>
+                                    {p.description && <p className="mt-2 text-xs text-on-surface-variant line-clamp-2">{p.description}</p>}
+                                    <div className="mt-5 flex gap-2">
+                                        <Button variant="ghost" className="flex-1 text-xs" onClick={() => openEdit(p)}>Edit</Button>
+                                        <Button variant="danger" className="flex-1 text-xs" onClick={() => handleDelete(p._id)}>Delete</Button>
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             )}
 
             <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? "Edit Property" : "Add Property"}>
@@ -104,11 +118,11 @@ const PropertiesPage = () => {
                         { label: "Monthly Rent (₹)", name: "rent", type: "number", placeholder: "12000" },
                         { label: "Description", name: "description", type: "text", placeholder: "Optional notes..." },
                     ].map(({ label, name, type, placeholder }) => (
-                        <label key={name} className="block space-y-1 text-sm">
-                            <span className="font-medium text-[color:var(--color-text)]">{label}</span>
+                        <label key={name} className="block space-y-1.5 text-sm">
+                            <span className="font-medium text-on-surface">{label}</span>
                             <input type={type} name={name} value={form[name]} onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
                                 placeholder={placeholder} required={name !== "description"}
-                                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-[color:var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/20" />
+                                className="w-full rounded-xl ghost-border bg-surface-container-lowest px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
                         </label>
                     ))}
                     <div className="flex gap-3 pt-2">

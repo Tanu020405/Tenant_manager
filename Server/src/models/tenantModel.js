@@ -26,7 +26,5 @@ const tenantSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-tenantSchema.index({ tenantId: 1 });
-
 const Tenant = mongoose.model("Tenant", tenantSchema);
 export default Tenant;
